@@ -63,14 +63,14 @@
 </head>
 <body>
     <div class="container">
+        <div id="chart-container"></div>
+        
         <h1>股票K线可视化</h1>
         
         <div class="input-section">
             <input type="text" id="stock-symbol" placeholder="输入股票代码，例如：000001" value="000001">
             <button onclick="fetchStockData()">获取数据</button>
         </div>
-        
-        <div id="chart-container"></div>
         
         <div class="error-message" id="error-message"></div>
     </div>
@@ -367,22 +367,7 @@
                                     {
                                         text: `股票K线图 - ${symbol}`,
                                         left: 'center',
-                                        top: '0%'
-                                    },
-                                    {
-                                        text: 'VOL图',
-                                        left: 'center',
-                                        top: '45%'
-                                    },
-                                    {
-                                        text: 'MACD图',
-                                        left: 'center',
-                                        top: '65%'
-                                    },
-                                    {
-                                        text: 'RSI图',
-                                        left: 'center',
-                                        top: '80%'
+                                        top: '5%'
                                     }
                                 ],
                                 
@@ -426,8 +411,8 @@
                                     }
                                 },
                                 legend: {
-                                    data: ['K线', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', '成交量', 'VOL5', 'VOL10', 'DIF', 'DEA', 'MACD', 'RSI14'],
-                                    bottom: 30,
+                                    data: ['K线', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', '成交量', 'VOL5', 'VOL10', 'DIF', 'DEA', 'MACD'],
+                                    top: 10,
                                     type: 'scroll',
                                     textStyle: {
                                         fontSize: 10
@@ -436,13 +421,13 @@
                                 dataZoom: [
                                     {
                                         type: 'inside',
-                                        xAxisIndex: [0, 1, 2, 3],
+                                        xAxisIndex: [0, 1, 2],
                                         start: 50,
                                         end: 100
                                     },
                                     {
                                         show: true,
-                                        xAxisIndex: [0, 1, 2, 3],
+                                        xAxisIndex: [0, 1, 2],
                                         type: 'slider',
                                         bottom: 5,
                                         start: 50,
@@ -453,28 +438,21 @@
                                     {
                                         left: '3%',
                                         right: '4%',
-                                        top: '3%',
+                                        top: '15%',
                                         height: '40%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '4%',
-                                        top: '48%',
+                                        top: '58%',
                                         height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '4%',
-                                        top: '68%',
-                                        height: '12%',
-                                        containLabel: true
-                                    },
-                                    {
-                                        left: '3%',
-                                        right: '4%',
-                                        top: '82%',
+                                        top: '72%',
                                         height: '12%',
                                         containLabel: true
                                     }
@@ -512,17 +490,6 @@
                                         splitLine: {
                                             show: false
                                         }
-                                    },
-                                    {
-                                        type: 'category',
-                                        data: chineseDates,
-                                        gridIndex: 3,
-                                        axisLabel: {
-                                            show: false
-                                        },
-                                        splitLine: {
-                                            show: false
-                                        }
                                     }
                                 ],
                                 yAxis: [
@@ -545,16 +512,6 @@
                                         type: 'value',
                                         scale: true,
                                         gridIndex: 2,
-                                        splitArea: {
-                                            show: true
-                                        }
-                                    },
-                                    {
-                                        type: 'value',
-                                        scale: true,
-                                        gridIndex: 3,
-                                        min: 0,
-                                        max: 100,
                                         splitArea: {
                                             show: true
                                         }
@@ -695,18 +652,6 @@
                                             color: function(params) {
                                                 return params.value >= 0 ? '#ef5350' : '#26a69a';
                                             }
-                                        }
-                                    },
-                                    {
-                                        name: 'RSI14',
-                                        type: 'line',
-                                        xAxisIndex: 3,
-                                        yAxisIndex: 3,
-                                        data: rsi14,
-                                        smooth: true,
-                                        lineStyle: {
-                                            width: 1,
-                                            color: '#FF5722'
                                         }
                                     }
                                 ]
