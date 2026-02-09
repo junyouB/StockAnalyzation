@@ -11,6 +11,7 @@ def fetch_stock_kline(symbol, start_date=None, end_date=None, adjust="qfq"):
         start_date: 开始日期，格式为"YYYYMMDD"
         end_date: 结束日期，格式为"YYYYMMDD"
         adjust: 复权类型，可选值："qfq"(前复权), "hfq"(后复权), ""(不复权)
+        max_retries: 最大重试次数
     
     Returns:
         list: 格式化后的股票K线数据列表
