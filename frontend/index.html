@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>股票K线可视化</title>
     <!-- 引入ECharts -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://unpkg.com/echarts@5.4.3/dist/echarts.min.js"></script>
     <!-- 引入Axios -->
-    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/axios@1.6.2/dist/axios.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -181,6 +181,34 @@
             return result;
         }
         
+        // 将英文时间格式转换为中文格式
+        function formatDateToChinese(dateString) {
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const weekday = weekdays[date.getDay()];
+            return `${year}年${month}月${day}日 ${weekday}`;
+        }
+        
+        // 计算成交量移动平均线
+        function calculateVolumeMA(data, period) {
+            const result = [];
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    result.push('-');
+                    continue;
+                }
+                let sum = 0;
+                for (let j = 0; j < period; j++) {
+                    sum += data[i - j];
+                }
+                result.push((sum / period).toFixed(2));
+            }
+            return result;
+        }
+        
         // 计算MACD
         function calculateMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
             const ema12 = [];
@@ -249,9 +277,12 @@
                             // 处理数据
                             const dates = [];
                             const klineData = [];
+                            const chineseDates = [];
+                            const volumeData = [];
                             
                             data.forEach(item => {
                                 dates.push(item.date);
+                                chineseDates.push(formatDateToChinese(item.date));
                                 // 确保数据类型为数字，并按ECharts要求的顺序：[open, close, low, high]
                                 klineData.push([
                                     parseFloat(item.open),
@@ -259,43 +290,115 @@
                                     parseFloat(item.low),
                                     parseFloat(item.high)
                                 ]);
+                                // 提取成交量数据
+                                volumeData.push(parseFloat(item.volume));
                             });
                             
                             // 计算MA
                             const ma5 = calculateMA(klineData, 5);
                             const ma10 = calculateMA(klineData, 10);
                             const ma20 = calculateMA(klineData, 20);
+                            const ma30 = calculateMA(klineData, 30);
+                            const ma60 = calculateMA(klineData, 60);
+                            
+                            // 计算成交量均线
+                            const volMA5 = calculateVolumeMA(volumeData, 5);
+                            const volMA10 = calculateVolumeMA(volumeData, 10);
                             
                             // 计算MACD
                             const macdResult = calculateMACD(klineData);
                             
                             // 更新图表
                             chart.setOption({
-                                title: {
-                                    text: `股票K线图 - ${symbol}`
-                                },
+                                title: [
+                                    {
+                                        text: `股票K线图 - ${symbol}`,
+                                        left: 'center',
+                                        top: '0%'
+                                    },
+                                    {
+                                        text: 'VOL图',
+                                        left: 'center',
+                                        top: '52%'
+                                    }
+                                ],
+                                
+                                
+                                
                                 tooltip: {
                                     trigger: 'axis',
                                     axisPointer: {
                                         type: 'cross'
+                                    },
+                                    formatter: function(params) {
+                                        const index = params[0].dataIndex;
+                                        let result = chineseDates[index] + '<br/>';
+                                        
+                                        // 处理K线数据
+                                        if (params[0].seriesName === 'K线') {
+                                            const data = params[0].data;
+                                            result += `开盘: ${data[0]}<br/>`;
+                                            result += `收盘: ${data[1]}<br/>`;
+                                            result += `最低: ${data[2]}<br/>`;
+                                            result += `最高: ${data[3]}<br/>`;
+                                        }
+                                        
+                                        // 处理MA数据
+                                        params.forEach(param => {
+                                            if (param.seriesName.includes('MA')) {
+                                                result += `${param.seriesName}: ${param.value}<br/>`;
+                                            }
+                                        });
+                                        
+                                        // 处理MACD数据
+                                        params.forEach(param => {
+                                            if (param.seriesName === 'DIF' || param.seriesName === 'DEA' || param.seriesName === 'MACD') {
+                                                result += `${param.seriesName}: ${param.value}<br/>`;
+                                            }
+                                        });
+                                        
+                                        return result;
                                     }
                                 },
                                 legend: {
-                                    data: ['K线', 'MA5', 'MA10', 'MA20', 'DIF', 'DEA', 'MACD'],
+                                    data: ['K线', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', '成交量', 'VOL5', 'VOL10', 'DIF', 'DEA', 'MACD'],
                                     bottom: 10
                                 },
+                                dataZoom: [
+                                    {
+                                        type: 'inside',
+                                        xAxisIndex: [0, 1, 2],
+                                        start: 50,
+                                        end: 100
+                                    },
+                                    {
+                                        show: true,
+                                        xAxisIndex: [0, 1, 2],
+                                        type: 'slider',
+                                        bottom: 5,
+                                        start: 50,
+                                        end: 100
+                                    }
+                                ],
                                 grid: [
                                     {
                                         left: '3%',
                                         right: '4%',
                                         top: '3%',
-                                        height: '60%',
+                                        height: '45%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '4%',
-                                        top: '70%',
+                                        top: '52%',
+                                        height: '15%',
+                                        containLabel: true
+                                    },
+                                    {
+                                        left: '3%',
+                                        right: '4%',
+                                        top: '72%',
                                         height: '20%',
                                         containLabel: true
                                     }
@@ -303,9 +406,10 @@
                                 xAxis: [
                                     {
                                         type: 'category',
-                                        data: dates,
+                                        data: chineseDates,
                                         axisLabel: {
-                                            rotate: 45
+                                            rotate: 45,
+                                            interval: 20 // 减少显示的标签数量，避免拥挤
                                         },
                                         splitLine: {
                                             show: false
@@ -313,8 +417,19 @@
                                     },
                                     {
                                         type: 'category',
-                                        data: dates,
+                                        data: chineseDates,
                                         gridIndex: 1,
+                                        axisLabel: {
+                                            show: false
+                                        },
+                                        splitLine: {
+                                            show: false
+                                        }
+                                    },
+                                    {
+                                        type: 'category',
+                                        data: chineseDates,
+                                        gridIndex: 2,
                                         axisLabel: {
                                             show: false
                                         },
@@ -335,6 +450,14 @@
                                         type: 'value',
                                         scale: true,
                                         gridIndex: 1,
+                                        splitArea: {
+                                            show: true
+                                        }
+                                    },
+                                    {
+                                        type: 'value',
+                                        scale: true,
+                                        gridIndex: 2,
                                         splitArea: {
                                             show: true
                                         }
@@ -383,10 +506,68 @@
                                         }
                                     },
                                     {
-                                        name: 'DIF',
+                                        name: 'MA30',
+                                        type: 'line',
+                                        data: ma30,
+                                        smooth: true,
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#795548'
+                                        }
+                                    },
+                                    {
+                                        name: 'MA60',
+                                        type: 'line',
+                                        data: ma60,
+                                        smooth: true,
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#607D8B'
+                                        }
+                                    },
+                                    {
+                                        name: '成交量',
+                                        type: 'bar',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: volumeData,
+                                        itemStyle: {
+                                            color: function(params) {
+                                                // 根据收盘价与开盘价的比较设置成交量颜色
+                                                const klineItem = klineData[params.dataIndex];
+                                                return klineItem[1] >= klineItem[0] ? '#ef5350' : '#26a69a';
+                                            }
+                                        }
+                                    },
+                                    {
+                                        name: 'VOL5',
                                         type: 'line',
                                         xAxisIndex: 1,
                                         yAxisIndex: 1,
+                                        data: volMA5,
+                                        smooth: true,
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#FF9800'
+                                        }
+                                    },
+                                    {
+                                        name: 'VOL10',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: volMA10,
+                                        smooth: true,
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#2196F3'
+                                        }
+                                    },
+                                    {
+                                        name: 'DIF',
+                                        type: 'line',
+                                        xAxisIndex: 2,
+                                        yAxisIndex: 2,
                                         data: macdResult.dif.map(val => val.toFixed(4)),
                                         smooth: true,
                                         lineStyle: {
@@ -397,8 +578,8 @@
                                     {
                                         name: 'DEA',
                                         type: 'line',
-                                        xAxisIndex: 1,
-                                        yAxisIndex: 1,
+                                        xAxisIndex: 2,
+                                        yAxisIndex: 2,
                                         data: macdResult.dea.map(val => val.toFixed(4)),
                                         smooth: true,
                                         lineStyle: {
@@ -409,8 +590,8 @@
                                     {
                                         name: 'MACD',
                                         type: 'bar',
-                                        xAxisIndex: 1,
-                                        yAxisIndex: 1,
+                                        xAxisIndex: 2,
+                                        yAxisIndex: 2,
                                         data: macdResult.macd.map(val => val.toFixed(4)),
                                         itemStyle: {
                                             color: function(params) {
