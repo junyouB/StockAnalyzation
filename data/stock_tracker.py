@@ -332,7 +332,15 @@ def fetch_and_save_stock_data(code, name="", industry="", area="", incremental=F
         if last_date:
             # 从最后一条数据的下一天开始获取
             last_date_obj = datetime.strptime(last_date, "%Y-%m-%d")
-            start_date = (last_date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
+            next_date = last_date_obj + timedelta(days=1)
+            start_date = next_date.strftime("%Y-%m-%d")
+            
+            # 检查起始日期是否超过今天
+            today = datetime.now().strftime("%Y-%m-%d")
+            if start_date > today:
+                logger.info(f"股票数据已是最新，最后日期: {last_date}, 无需更新")
+                return True
+            
             logger.info(f"增量更新，从 {start_date} 开始获取数据")
         else:
             logger.warning(f"无法获取最后K线日期，将获取全部数据")

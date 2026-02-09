@@ -503,6 +503,139 @@
             return { ma: maList, upper: upperList, lower: lowerList };
         }
         
+        // 分析MACD指标
+        function analyzeMACD(macdResult) {
+            const dif = macdResult.dif;
+            const dea = macdResult.dea;
+            
+            if (dif.length < 2) return '观望';
+            
+            const lastDif = parseFloat(dif[dif.length - 1]);
+            const lastDea = parseFloat(dea[dea.length - 1]);
+            const prevDif = parseFloat(dif[dif.length - 2]);
+            const prevDea = parseFloat(dea[dea.length - 2]);
+            
+            // 金叉：DIF上穿DEA
+            if (prevDif <= prevDea && lastDif > lastDea) {
+                return '买入';
+            }
+            // 死叉：DIF下穿DEA
+            if (prevDif >= prevDea && lastDif < lastDea) {
+                return '卖出';
+            }
+            // DIF在DEA上方，且MACD柱状图为正
+            if (lastDif > lastDea && lastDif > 0) {
+                return '买入';
+            }
+            // DIF在DEA下方，且MACD柱状图为负
+            if (lastDif < lastDea && lastDif < 0) {
+                return '卖出';
+            }
+            
+            return '观望';
+        }
+        
+        // 分析RSI指标
+        function analyzeRSI(rsiData) {
+            if (!rsiData || rsiData.length === 0) return '观望';
+            
+            const lastRSI = parseFloat(rsiData[rsiData.length - 1]);
+            
+            if (lastRSI > 70) {
+                return '卖出';
+            } else if (lastRSI < 30) {
+                return '买入';
+            } else if (lastRSI > 50) {
+                return '买入';
+            } else {
+                return '卖出';
+            }
+        }
+        
+        // 分析KDJ指标
+        function analyzeKDJ(kdjResult) {
+            const k = kdjResult.k;
+            const d = kdjResult.d;
+            const j = kdjResult.j;
+            
+            if (k.length < 2) return '观望';
+            
+            const lastK = parseFloat(k[k.length - 1]);
+            const lastD = parseFloat(d[d.length - 1]);
+            const lastJ = parseFloat(j[j.length - 1]);
+            const prevK = parseFloat(k[k.length - 2]);
+            const prevD = parseFloat(d[d.length - 2]);
+            
+            // 金叉：K上穿D
+            if (prevK <= prevD && lastK > lastD) {
+                return '买入';
+            }
+            // 死叉：K下穿D
+            if (prevK >= prevD && lastK < lastD) {
+                return '卖出';
+            }
+            // J值判断
+            if (lastJ > 100) {
+                return '卖出';
+            } else if (lastJ < 0) {
+                return '买入';
+            }
+            
+            return '观望';
+        }
+        
+        // 分析BOLL指标
+        function analyzeBOLL(bollResult, klineData) {
+            const upper = bollResult.upper;
+            const middle = bollResult.ma;
+            const lower = bollResult.lower;
+            
+            if (!upper || upper.length === 0) return '观望';
+            
+            const lastIndex = upper.length - 1;
+            const lastUpper = parseFloat(upper[lastIndex]);
+            const lastMiddle = parseFloat(middle[lastIndex]);
+            const lastLower = parseFloat(lower[lastIndex]);
+            const lastClose = parseFloat(klineData[lastIndex][1]);
+            
+            // 价格突破上轨
+            if (lastClose > lastUpper) {
+                return '买入';
+            }
+            // 价格跌破下轨
+            if (lastClose < lastLower) {
+                return '卖出';
+            }
+            // 价格在中轨上方
+            if (lastClose > lastMiddle) {
+                return '买入';
+            }
+            // 价格在中轨下方
+            if (lastClose < lastMiddle) {
+                return '卖出';
+            }
+            
+            return '观望';
+        }
+        
+        // 综合分析
+        function analyzeComposite(singleResult) {
+            const buySignals = Object.values(singleResult).filter(s => s === '买入').length;
+            const sellSignals = Object.values(singleResult).filter(s => s === '卖出').length;
+            
+            if (buySignals >= 3) {
+                return '买入';
+            } else if (sellSignals >= 3) {
+                return '卖出';
+            } else if (buySignals > sellSignals) {
+                return '买入';
+            } else if (sellSignals > buySignals) {
+                return '卖出';
+            } else {
+                return '观望';
+            }
+        }
+        
         // 计算MACD
         function calculateMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
             const ema12 = [];
@@ -649,6 +782,16 @@
                             const bollResult = calculateBOLL(klineData);
                             currentBOLLData = bollResult;
                             
+                            // 计算技术指标分析结果
+                            const titleText = `股票K线图 - ${stockCode}`;
+                            const singleResult = {
+                                'MACD': analyzeMACD(macdResult),
+                                'RSI': analyzeRSI(rsi14),
+                                'KDJ': analyzeKDJ(kdjResult),
+                                'BOLL': analyzeBOLL(bollResult, klineData)
+                            };
+                            const compositeResult = analyzeComposite(singleResult);
+                            
                             // 更新图表
                             chart.setOption({
                                 title: [
@@ -663,29 +806,64 @@
                                         }
                                     },
                                     {
-                                        text: 'VOL图',
-                                        left: 'center',
-                                        top: '38%'
+                                        text: 'MA',
+                                        left: '28%',
+                                        top: '32%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 12,
+                                            fontWeight: 'bold'
+                                        }
                                     },
                                     {
-                                        text: 'MACD图',
-                                        left: 'center',
-                                        top: '51%'
+                                        text: 'MACD',
+                                        left: '78%',
+                                        top: '32%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 12,
+                                            fontWeight: 'bold'
+                                        }
                                     },
                                     {
-                                        text: 'RSI图',
-                                        left: 'center',
-                                        top: '64%'
+                                        text: 'VOL',
+                                        left: '28%',
+                                        top: '50%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 12,
+                                            fontWeight: 'bold'
+                                        }
                                     },
                                     {
-                                        text: 'KDJ图',
-                                        left: 'center',
-                                        top: '77%'
+                                        text: 'KDJ',
+                                        left: '78%',
+                                        top: '50%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 12,
+                                            fontWeight: 'bold'
+                                        }
                                     },
                                     {
-                                        text: 'BOLL图',
-                                        left: 'center',
-                                        top: '90%'
+                                        text: 'RSI',
+                                        left: '28%',
+                                        top: '68%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 12,
+                                            fontWeight: 'bold'
+                                        }
+                                    },
+                                    {
+                                        text: 'BOLL',
+                                        left: '78%',
+                                        top: '68%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 12,
+                                            fontWeight: 'bold'
+                                        }
                                     }
                                 ],
                                 
@@ -1024,6 +1202,7 @@
                                         type: 'line',
                                         data: ma5,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#FF9800'
@@ -1034,6 +1213,7 @@
                                         type: 'line',
                                         data: ma10,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#2196F3'
@@ -1044,6 +1224,7 @@
                                         type: 'line',
                                         data: ma20,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#9C27B0'
@@ -1054,6 +1235,7 @@
                                         type: 'line',
                                         data: ma30,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#795548'
@@ -1064,6 +1246,7 @@
                                         type: 'line',
                                         data: ma60,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#607D8B'
@@ -1282,7 +1465,7 @@
                                         type: 'line',
                                         xAxisIndex: 6,
                                         yAxisIndex: 6,
-                                        data: bollResult.middle,
+                                        data: bollResult.ma,
                                         smooth: true,
                                         symbol: 'none',
                                         lineStyle: {
