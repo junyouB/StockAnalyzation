@@ -164,8 +164,10 @@
                 
                 chart.setOption(option);
                 
-                // 默认获取数据
-                fetchStockData();
+                // 延迟1秒获取数据，确保后端服务完全启动
+                setTimeout(function() {
+                    fetchStockData();
+                }, 1000);
                 
                 // 响应式调整
                 window.addEventListener('resize', function() {
@@ -594,14 +596,16 @@
                                     {
                                         type: 'inside',
                                         start: 0,
-                                        end: 100
+                                        end: 100,
+                                        xAxisIndex: [0, 1, 2, 3, 4, 5]
                                     },
                                     {
                                         show: true,
                                         type: 'slider',
                                         bottom: '0%',
                                         start: 0,
-                                        end: 100
+                                        end: 100,
+                                        xAxisIndex: [0, 1, 2, 3, 4, 5]
                                     }
                                 ],
                                 
