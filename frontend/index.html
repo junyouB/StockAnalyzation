@@ -111,16 +111,80 @@
 <body>
     <div class="container">
         <div class="input-section" style="position: relative;">
-            <input type="text" id="stock-symbol" placeholder="输入股票代码或名称，例如：000001 或 浦发银行" value="000001" oninput="handleSearchInput(this.value)">
-            <button onclick="fetchStockData()">获取数据</button>
-            <button onclick="exportData()">导出数据</button>
-            <button class="search-btn" onclick="searchStocks()">搜索</button>
-            <div class="search-results" id="search-results"></div>
-        </div>
+                <input type="text" id="stock-symbol" placeholder="输入股票代码或名称，例如：000001 或 浦发银行" value="000001" oninput="handleSearchInput(this.value)">
+                <button onclick="fetchStockData()">获取数据</button>
+                <div class="search-results" id="search-results"></div>
+            </div>
         
         <div id="chart-container"></div>
         
         <div class="error-message" id="error-message"></div>
+    </div>
+
+    <!-- 技术指标参考指南 -->
+    <div class="container" style="margin-top: 20px;">
+        <h2 style="text-align: center; color: #333;">技术指标参考指南</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+                <h3 style="color: #2196F3;">VOL（成交量）</h3>
+                <p><strong>含义：</strong>成交量是指股票在一定时间内的成交数量，反映市场的活跃度和资金流向。</p>
+                <p><strong>解读：</strong></p>
+                <ul>
+                    <li>价升量增：上涨趋势可能持续</li>
+                    <li>价升量减：上涨动力不足，可能回调</li>
+                    <li>价跌量增：下跌趋势可能持续</li>
+                    <li>价跌量减：下跌动力不足，可能反弹</li>
+                </ul>
+            </div>
+            
+            <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+                <h3 style="color: #2196F3;">MACD（指数平滑异同移动平均线）</h3>
+                <p><strong>构成：</strong>DIF（快线）、DEA（慢线）、MACD柱状图</p>
+                <p><strong>解读：</strong></p>
+                <ul>
+                    <li>金叉：DIF上穿DEA，买入信号</li>
+                    <li>死叉：DIF下穿DEA，卖出信号</li>
+                    <li>顶背离：价格创新高，MACD未创新高，可能见顶</li>
+                    <li>底背离：价格创新低，MACD未创新低，可能见底</li>
+                </ul>
+            </div>
+            
+            <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+                <h3 style="color: #2196F3;">RSI（相对强弱指标）</h3>
+                <p><strong>取值范围：</strong>0-100</p>
+                <p><strong>解读：</strong></p>
+                <ul>
+                    <li>RSI > 70：超买区域，可能回调</li>
+                    <li>RSI < 30：超卖区域，可能反弹</li>
+                    <li>RSI在50左右：市场处于平衡状态</li>
+                    <li>RSI趋势与价格趋势背离：可能反转</li>
+                </ul>
+            </div>
+            
+            <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+                <h3 style="color: #2196F3;">KDJ（随机指标）</h3>
+                <p><strong>构成：</strong>K线（快速线）、D线（慢速线）、J线（确认线）</p>
+                <p><strong>解读：</strong></p>
+                <ul>
+                    <li>金叉：K线上穿D线，买入信号</li>
+                    <li>死叉：K线下穿D线，卖出信号</li>
+                    <li>J线>100：超买，可能回调</li>
+                    <li>J线<0：超卖，可能反弹</li>
+                </ul>
+            </div>
+            
+            <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+                <h3 style="color: #2196F3;">BOLL（布林带）</h3>
+                <p><strong>构成：</strong>上轨、中轨（移动平均线）、下轨</p>
+                <p><strong>解读：</strong></p>
+                <ul>
+                    <li>价格突破上轨：可能继续上涨，或回调</li>
+                    <li>价格突破下轨：可能继续下跌，或反弹</li>
+                    <li>布林带收窄：市场即将变盘</li>
+                    <li>布林带扩张：市场波动加大</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -532,6 +596,118 @@
             return { dif, dea, macd };
         }
         
+        // 基于单一指标的价值判断逻辑
+        function analyzeSingleIndicator(data, volumeData, macdResult, rsiData, kdjResult, bollResult) {
+            const result = {
+                vol: '持有',
+                macd: '持有',
+                rsi: '持有',
+                kdj: '持有',
+                boll: '持有'
+            };
+            
+            // 分析VOL
+            if (volumeData.length >= 2) {
+                const currentVol = volumeData[volumeData.length - 1];
+                const prevVol = volumeData[volumeData.length - 2];
+                const currentPrice = data[data.length - 1][1];
+                const prevPrice = data[data.length - 2][1];
+                
+                if (currentVol > prevVol * 1.5 && currentPrice > prevPrice) {
+                    result.vol = '买入';
+                } else if (currentVol > prevVol * 1.5 && currentPrice < prevPrice) {
+                    result.vol = '卖出';
+                }
+            }
+            
+            // 分析MACD
+            if (macdResult.dif.length >= 2 && macdResult.dea.length >= 2) {
+                const currentDif = macdResult.dif[macdResult.dif.length - 1];
+                const prevDif = macdResult.dif[macdResult.dif.length - 2];
+                const currentDea = macdResult.dea[macdResult.dea.length - 1];
+                const prevDea = macdResult.dea[macdResult.dea.length - 2];
+                
+                if (currentDif > currentDea && prevDif <= prevDea) {
+                    result.macd = '买入';
+                } else if (currentDif < currentDea && prevDif >= prevDea) {
+                    result.macd = '卖出';
+                }
+            }
+            
+            // 分析RSI
+            if (rsiData.length >= 1) {
+                const currentRsi = parseFloat(rsiData[rsiData.length - 1]);
+                if (!isNaN(currentRsi)) {
+                    if (currentRsi < 30) {
+                        result.rsi = '买入';
+                    } else if (currentRsi > 70) {
+                        result.rsi = '卖出';
+                    }
+                }
+            }
+            
+            // 分析KDJ
+            if (kdjResult.k.length >= 2 && kdjResult.d.length >= 2) {
+                const currentK = parseFloat(kdjResult.k[kdjResult.k.length - 1]);
+                const prevK = parseFloat(kdjResult.k[kdjResult.k.length - 2]);
+                const currentD = parseFloat(kdjResult.d[kdjResult.d.length - 1]);
+                const prevD = parseFloat(kdjResult.d[kdjResult.d.length - 2]);
+                
+                if (!isNaN(currentK) && !isNaN(currentD) && !isNaN(prevK) && !isNaN(prevD)) {
+                    if (currentK > currentD && prevK <= prevD) {
+                        result.kdj = '买入';
+                    } else if (currentK < currentD && prevK >= prevD) {
+                        result.kdj = '卖出';
+                    }
+                }
+            }
+            
+            // 分析BOLL
+            if (bollResult.upper.length >= 1 && bollResult.lower.length >= 1) {
+                const currentPrice = data[data.length - 1][1];
+                const currentUpper = parseFloat(bollResult.upper[bollResult.upper.length - 1]);
+                const currentLower = parseFloat(bollResult.lower[bollResult.lower.length - 1]);
+                
+                if (!isNaN(currentUpper) && !isNaN(currentLower)) {
+                    if (currentPrice <= currentLower) {
+                        result.boll = '买入';
+                    } else if (currentPrice >= currentUpper) {
+                        result.boll = '卖出';
+                    }
+                }
+            }
+            
+            return result;
+        }
+        
+        // 综合多指标的价值判断逻辑
+        function analyzeCompositeIndicator(singleResult) {
+            let buyCount = 0;
+            let sellCount = 0;
+            
+            // 统计买入和卖出信号数量
+            Object.values(singleResult).forEach(signal => {
+                if (signal === '买入') {
+                    buyCount++;
+                } else if (signal === '卖出') {
+                    sellCount++;
+                }
+            });
+            
+            // 基于信号数量生成综合判断
+            if (buyCount >= 3) {
+                return '买入';
+            } else if (sellCount >= 3) {
+                return '卖出';
+            } else if (buyCount === 2 && sellCount === 0) {
+                return '买入';
+            } else if (sellCount === 2 && buyCount === 0) {
+                return '卖出';
+            } else {
+                return '持有';
+            }
+        }
+        
         // 存储当前数据
         let currentStockData = null;
         let currentKlineData = null;
@@ -656,38 +832,72 @@
                             const bollResult = calculateBOLL(klineData);
                             currentBOLLData = bollResult;
                             
+                            // 分析股票价值
+                            const singleResult = analyzeSingleIndicator(klineData, volumeData, macdResult, rsi14, kdjResult, bollResult);
+                            const compositeResult = analyzeCompositeIndicator(singleResult);
+                            
                             // 更新图表
                             chart.setOption({
                                 title: [
                                     {
                                         text: `股票K线图 - ${symbol}`,
                                         left: 'center',
-                                        top: '5%'
+                                        top: '5%',
+                                        subtext: `综合判断: ${compositeResult} | 买入信号: ${Object.values(singleResult).filter(s => s === '买入').length} | 卖出信号: ${Object.values(singleResult).filter(s => s === '卖出').length}`,
+                                        subtextStyle: {
+                                            fontSize: 12,
+                                            color: compositeResult === '买入' ? '#4CAF50' : compositeResult === '卖出' ? '#f44336' : '#ff9800'
+                                        }
                                     },
                                     {
                                         text: 'VOL图',
                                         left: 'center',
-                                        top: '38%'
+                                        top: '38%',
+                                        subtext: `成交量：反映市场活跃度，量价配合是重要参考 | VOL判断: ${singleResult.vol}`,
+                                        subtextStyle: {
+                                            fontSize: 10,
+                                            color: singleResult.vol === '买入' ? '#4CAF50' : singleResult.vol === '卖出' ? '#f44336' : '#666'
+                                        }
                                     },
                                     {
                                         text: 'MACD图',
                                         left: 'center',
-                                        top: '51%'
+                                        top: '51%',
+                                        subtext: `MACD：由DIF、DEA和柱状图组成，反映趋势和动量 | MACD判断: ${singleResult.macd}`,
+                                        subtextStyle: {
+                                            fontSize: 10,
+                                            color: singleResult.macd === '买入' ? '#4CAF50' : singleResult.macd === '卖出' ? '#f44336' : '#666'
+                                        }
                                     },
                                     {
                                         text: 'RSI图',
                                         left: 'center',
-                                        top: '64%'
+                                        top: '64%',
+                                        subtext: `RSI：0-100取值，>70超买，<30超卖 | RSI判断: ${singleResult.rsi}`,
+                                        subtextStyle: {
+                                            fontSize: 10,
+                                            color: singleResult.rsi === '买入' ? '#4CAF50' : singleResult.rsi === '卖出' ? '#f44336' : '#666'
+                                        }
                                     },
                                     {
                                         text: 'KDJ图',
                                         left: 'center',
-                                        top: '77%'
+                                        top: '77%',
+                                        subtext: `KDJ：K、D、J三线，反映价格强弱和超买超卖 | KDJ判断: ${singleResult.kdj}`,
+                                        subtextStyle: {
+                                            fontSize: 10,
+                                            color: singleResult.kdj === '买入' ? '#4CAF50' : singleResult.kdj === '卖出' ? '#f44336' : '#666'
+                                        }
                                     },
                                     {
                                         text: 'BOLL图',
                                         left: 'center',
-                                        top: '90%'
+                                        top: '90%',
+                                        subtext: `BOLL：由上中下轨组成，反映价格波动区间 | BOLL判断: ${singleResult.boll}`,
+                                        subtextStyle: {
+                                            fontSize: 10,
+                                            color: singleResult.boll === '买入' ? '#4CAF50' : singleResult.boll === '卖出' ? '#f44336' : '#666'
+                                        }
                                     }
                                 ],
                                 
@@ -720,26 +930,75 @@
                                             }
                                         });
                                         
-                                        // 处理MACD数据
+                                        // 处理成交量数据
                                         params.forEach(param => {
-                                            if (param.seriesName === 'DIF' || param.seriesName === 'DEA' || param.seriesName === 'MACD') {
+                                            if (param.seriesName === '成交量' || param.seriesName.includes('VOL')) {
                                                 result += `${param.seriesName}: ${param.value}<br/>`;
                                             }
                                         });
+                                        
+                                        // 处理MACD数据
+                                        const hasMACD = params.some(param => param.seriesName === 'DIF' || param.seriesName === 'DEA' || param.seriesName === 'MACD');
+                                        if (hasMACD) {
+                                            result += '<br/><b>MACD指标说明:</b><br/>';
+                                            result += 'DIF: 快速与慢速移动平均线的差<br/>';
+                                            result += 'DEA: DIF的移动平均线<br/>';
+                                            result += 'MACD: (DIF-DEA)×2，反映动量变化<br/>';
+                                            result += '金叉: DIF上穿DEA，可能的买入信号<br/>';
+                                            result += '死叉: DIF下穿DEA，可能的卖出信号<br/><br/>';
+                                            params.forEach(param => {
+                                                if (param.seriesName === 'DIF' || param.seriesName === 'DEA' || param.seriesName === 'MACD') {
+                                                    result += `${param.seriesName}: ${param.value}<br/>`;
+                                                }
+                                            });
+                                        }
+                                        
+                                        // 处理RSI数据
+                                        const hasRSI = params.some(param => param.seriesName === 'RSI14');
+                                        if (hasRSI) {
+                                            result += '<br/><b>RSI指标说明:</b><br/>';
+                                            result += '相对强弱指标，取值范围0-100<br/>';
+                                            result += 'RSI > 70: 超买区域，可能回调<br/>';
+                                            result += 'RSI < 30: 超卖区域，可能反弹<br/>';
+                                            result += 'RSI在50左右: 市场处于平衡状态<br/><br/>';
+                                            params.forEach(param => {
+                                                if (param.seriesName === 'RSI14') {
+                                                    result += `${param.seriesName}: ${param.value}<br/>`;
+                                                }
+                                            });
+                                        }
                                         
                                         // 处理KDJ数据
-                                        params.forEach(param => {
-                                            if (param.seriesName === 'K' || param.seriesName === 'D' || param.seriesName === 'J') {
-                                                result += `${param.seriesName}: ${param.value}<br/>`;
-                                            }
-                                        });
+                                        const hasKDJ = params.some(param => param.seriesName === 'K' || param.seriesName === 'D' || param.seriesName === 'J');
+                                        if (hasKDJ) {
+                                            result += '<br/><b>KDJ指标说明:</b><br/>';
+                                            result += 'K线: 快速随机指标<br/>';
+                                            result += 'D线: 慢速随机指标<br/>';
+                                            result += 'J线: K和D的乖离率<br/>';
+                                            result += '金叉: K上穿D，可能的买入信号<br/>';
+                                            result += '死叉: K下穿D，可能的卖出信号<br/><br/>';
+                                            params.forEach(param => {
+                                                if (param.seriesName === 'K' || param.seriesName === 'D' || param.seriesName === 'J') {
+                                                    result += `${param.seriesName}: ${param.value}<br/>`;
+                                                }
+                                            });
+                                        }
                                         
                                         // 处理BOLL数据
-                                        params.forEach(param => {
-                                            if (param.seriesName.includes('BOLL')) {
-                                                result += `${param.seriesName}: ${param.value}<br/>`;
-                                            }
-                                        });
+                                        const hasBOLL = params.some(param => param.seriesName.includes('BOLL'));
+                                        if (hasBOLL) {
+                                            result += '<br/><b>BOLL指标说明:</b><br/>';
+                                            result += '上轨: 价格波动的压力线<br/>';
+                                            result += '中轨: 价格的移动平均线<br/>';
+                                            result += '下轨: 价格波动的支撑线<br/>';
+                                            result += '价格突破上轨: 可能继续上涨<br/>';
+                                            result += '价格突破下轨: 可能继续下跌<br/><br/>';
+                                            params.forEach(param => {
+                                                if (param.seriesName.includes('BOLL')) {
+                                                    result += `${param.seriesName}: ${param.value}<br/>`;
+                                                }
+                                            });
+                                        }
                                         
                                         return result;
                                     }
@@ -945,6 +1204,61 @@
                                             color0: '#26a69a',
                                             borderColor: '#ef5350',
                                             borderColor0: '#26a69a'
+                                        }
+                                    },
+                                    // 价值判断信号标记
+                                    {
+                                        name: '买入信号',
+                                        type: 'scatter',
+                                        data: (function() {
+                                            const signals = [];
+                                            // 这里可以根据需要添加买入信号点
+                                            // 暂时只在最后一个数据点添加信号（如果是买入）
+                                            if (compositeResult === '买入') {
+                                                const lastData = klineData[klineData.length - 1];
+                                                signals.push([
+                                                    klineData.length - 1,
+                                                    lastData[3] * 1.02, // 在最高价上方显示
+                                                    '买入'
+                                                ]);
+                                            }
+                                            return signals;
+                                        })(),
+                                        symbolSize: 15,
+                                        itemStyle: {
+                                            color: '#4CAF50'
+                                        },
+                                        label: {
+                                            show: true,
+                                            position: 'top',
+                                            formatter: '{c}'
+                                        }
+                                    },
+                                    {
+                                        name: '卖出信号',
+                                        type: 'scatter',
+                                        data: (function() {
+                                            const signals = [];
+                                            // 这里可以根据需要添加卖出信号点
+                                            // 暂时只在最后一个数据点添加信号（如果是卖出）
+                                            if (compositeResult === '卖出') {
+                                                const lastData = klineData[klineData.length - 1];
+                                                signals.push([
+                                                    klineData.length - 1,
+                                                    lastData[2] * 0.98, // 在最低价下方显示
+                                                    '卖出'
+                                                ]);
+                                            }
+                                            return signals;
+                                        })(),
+                                        symbolSize: 15,
+                                        itemStyle: {
+                                            color: '#f44336'
+                                        },
+                                        label: {
+                                            show: true,
+                                            position: 'bottom',
+                                            formatter: '{c}'
                                         }
                                     },
                                     {
