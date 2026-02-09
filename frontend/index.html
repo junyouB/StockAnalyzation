@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>股票K线可视化</title>
     <!-- 引入ECharts -->
-    <script src="https://unpkg.com/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
     <!-- 引入Axios -->
-    <script src="https://unpkg.com/axios@1.6.2/dist/axios.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -29,15 +29,11 @@
         .input-section {
             margin-bottom: 20px;
             text-align: center;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
         }
         .input-section input {
             padding: 8px 12px;
             font-size: 16px;
-            width: 300px;
+            width: 200px;
             margin-right: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -50,52 +46,9 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-right: 10px;
         }
         .input-section button:hover {
             background-color: #45a049;
-        }
-        .input-section button.search-btn {
-            background-color: #2196F3;
-        }
-        .input-section button.search-btn:hover {
-            background-color: #0b7dda;
-        }
-        .search-results {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 1000;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            display: none;
-        }
-        .search-results.show {
-            display: block;
-        }
-        .search-result-item {
-            padding: 10px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-        .search-result-item:hover {
-            background-color: #f5f5f5;
-        }
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-        .search-result-code {
-            font-weight: bold;
-            color: #2196F3;
-        }
-        .search-result-name {
-            color: #666;
-            margin-left: 10px;
         }
         #chart-container {
             width: 100%;
@@ -111,10 +64,12 @@
 <body>
     <div class="container">
         <div class="input-section" style="position: relative;">
-                <input type="text" id="stock-symbol" placeholder="输入股票代码或名称，例如：000001 或 浦发银行" value="000001" oninput="handleSearchInput(this.value)">
-                <button onclick="fetchStockData()">获取数据</button>
-                <div class="search-results" id="search-results"></div>
-            </div>
+            <input type="text" id="stock-symbol" placeholder="输入股票代码或名称，例如：000001 或 浦发银行" value="000001" oninput="handleSearchInput(this.value)">
+            <button onclick="fetchStockData()">获取数据</button>
+            <button onclick="exportData()">导出数据</button>
+            <button class="search-btn" onclick="searchStocks()">搜索</button>
+            <div class="search-results" id="search-results"></div>
+        </div>
         
         <div id="chart-container"></div>
         
@@ -190,77 +145,68 @@
     <script>
         let chart;
         let isRequesting = false; // 请求状态标志
-        let searchTimeout = null; // 搜索防抖
         
-        // 搜索股票
-        function searchStocks() {
-            const keyword = document.getElementById('stock-symbol').value.trim();
-            const searchResults = document.getElementById('search-results');
-            
-            if (!keyword) {
-                searchResults.classList.remove('show');
-                return;
-            }
-            
-            axios.get(`http://localhost:5001/api/stock/search?keyword=${encodeURIComponent(keyword)}&limit=10`)
-                .then(response => {
-                    if (response.data.success && response.data.data.length > 0) {
-                        const results = response.data.data;
-                        let html = '';
-                        results.forEach(item => {
-                            html += `
-                                <div class="search-result-item" onclick="selectStock('${item.code}', '${item.name}')">
-                                    <span class="search-result-code">${item.code}</span>
-                                    <span class="search-result-name">${item.name}</span>
-                                </div>
-                            `;
-                        });
-                        searchResults.innerHTML = html;
-                        searchResults.classList.add('show');
-                    } else {
-                        searchResults.innerHTML = '<div class="search-result-item" style="color: #999;">未找到匹配的股票</div>';
-                        searchResults.classList.add('show');
-                    }
-                })
-                .catch(error => {
-                    console.error('搜索失败:', error);
-                    searchResults.innerHTML = '<div class="search-result-item" style="color: red;">搜索失败，请重试</div>';
-                    searchResults.classList.add('show');
-                });
+        // 股票代码到公司名称的映射
+        const stockNameMap = {
+            '600036': '招商银行',
+            '000001': '平安银行',
+            '000002': '万科A',
+            '600519': '贵州茅台',
+            '601318': '中国平安',
+            '600030': '中芯国际',
+            '601888': '中国中车',
+            '600000': '浦发银行',
+            '601398': '工商银行',
+            '601988': '中国银行',
+            '600028': '中国石化',
+            '601857': '中国石油'
+        };
+        
+        // 公司名称到股票代码的映射（反向映射）
+        const nameToStockCodeMap = {
+            '招商银行': '600036',
+            '平安银行': '000001',
+            '万科A': '000002',
+            '贵州茅台': '600519',
+            '中国平安': '601318',
+            '中芯国际': '600030',
+            '中国中车': '601888',
+            '浦发银行': '600000',
+            '工商银行': '601398',
+            '中国银行': '601988',
+            '中国石化': '600028',
+            '中国石油': '601857'
+        };
+        
+        // 根据股票代码获取公司名称
+        function getStockName(symbol) {
+            return stockNameMap[symbol] || '';
         }
         
-        // 处理搜索输入（防抖）
-        function handleSearchInput(value) {
-            const searchResults = document.getElementById('search-results');
-            
-            clearTimeout(searchTimeout);
-            
-            if (value.length < 2) {
-                searchResults.classList.remove('show');
-                return;
-            }
-            
-            searchTimeout = setTimeout(() => {
-                searchStocks();
-            }, 300);
+        // 根据公司名称获取股票代码
+        function getStockCode(name) {
+            return nameToStockCodeMap[name] || '';
         }
         
-        // 选择股票
-        function selectStock(code, name) {
-            document.getElementById('stock-symbol').value = `${code} - ${name}`;
-            document.getElementById('search-results').classList.remove('show');
-            fetchStockData();
-        }
-        
-        // 点击页面其他地方关闭搜索结果
-        document.addEventListener('click', function(event) {
-            const searchResults = document.getElementById('search-results');
-            const inputSection = document.querySelector('.input-section');
+        // 当股票代码或公司名称输入时，显示对应信息
+        function fetchStockName() {
+            const input = document.getElementById('stock-symbol').value;
+            const stockNameElement = document.getElementById('stock-name');
             
-            if (!inputSection.contains(event.target)) {
-                searchResults.classList.remove('show');
+            // 判断输入的是股票代码还是公司名称
+            const stockCode = getStockCode(input);
+            const stockName = getStockName(input);
+            
+            if (stockCode && !stockName) {
+                // 输入的是公司名称，显示股票代码
+                stockNameElement.textContent = `股票代码：${stockCode}`;
+            } else if (stockName && !stockCode) {
+                // 输入的是股票代码，显示公司名称
+                stockNameElement.textContent = `（${stockName}）`;
+            } else {
+                stockNameElement.textContent = '';
             }
-        });
+        }
         
         // 页面加载完成后初始化
         window.onload = function() {
@@ -369,7 +315,7 @@
             const result = [];
             for (let i = 0; i < data.length; i++) {
                 if (i < period - 1) {
-                    result.push('-');
+                    result.push(null);
                     continue;
                 }
                 let sum = 0;
@@ -397,7 +343,7 @@
             const result = [];
             for (let i = 0; i < data.length; i++) {
                 if (i < period - 1) {
-                    result.push('-');
+                    result.push(null);
                     continue;
                 }
                 let sum = 0;
@@ -430,7 +376,7 @@
             // 计算RSI
             for (let i = 0; i < data.length; i++) {
                 if (i < period) {
-                    result.push('-');
+                    result.push(null);
                     continue;
                 }
                 
@@ -473,10 +419,10 @@
                 if (i < period - 1) {
                     lowList.push(data[i][2]); // low
                     highList.push(data[i][3]); // high
-                    rsvList.push('-');
-                    kList.push('-');
-                    dList.push('-');
-                    jList.push('-');
+                    rsvList.push(null);
+                    kList.push(null);
+                    dList.push(null);
+                    jList.push(null);
                 } else {
                     // 计算period周期内的最高价和最低价
                     let periodLow = Infinity;
@@ -527,9 +473,9 @@
             
             for (let i = 0; i < data.length; i++) {
                 if (i < period - 1) {
-                    maList.push('-');
-                    upperList.push('-');
-                    lowerList.push('-');
+                    maList.push(null);
+                    upperList.push(null);
+                    lowerList.push(null);
                 } else {
                     // 计算MA
                     let sum = 0;
@@ -596,118 +542,6 @@
             return { dif, dea, macd };
         }
         
-        // 基于单一指标的价值判断逻辑
-        function analyzeSingleIndicator(data, volumeData, macdResult, rsiData, kdjResult, bollResult) {
-            const result = {
-                vol: '持有',
-                macd: '持有',
-                rsi: '持有',
-                kdj: '持有',
-                boll: '持有'
-            };
-            
-            // 分析VOL
-            if (volumeData.length >= 2) {
-                const currentVol = volumeData[volumeData.length - 1];
-                const prevVol = volumeData[volumeData.length - 2];
-                const currentPrice = data[data.length - 1][1];
-                const prevPrice = data[data.length - 2][1];
-                
-                if (currentVol > prevVol * 1.5 && currentPrice > prevPrice) {
-                    result.vol = '买入';
-                } else if (currentVol > prevVol * 1.5 && currentPrice < prevPrice) {
-                    result.vol = '卖出';
-                }
-            }
-            
-            // 分析MACD
-            if (macdResult.dif.length >= 2 && macdResult.dea.length >= 2) {
-                const currentDif = macdResult.dif[macdResult.dif.length - 1];
-                const prevDif = macdResult.dif[macdResult.dif.length - 2];
-                const currentDea = macdResult.dea[macdResult.dea.length - 1];
-                const prevDea = macdResult.dea[macdResult.dea.length - 2];
-                
-                if (currentDif > currentDea && prevDif <= prevDea) {
-                    result.macd = '买入';
-                } else if (currentDif < currentDea && prevDif >= prevDea) {
-                    result.macd = '卖出';
-                }
-            }
-            
-            // 分析RSI
-            if (rsiData.length >= 1) {
-                const currentRsi = parseFloat(rsiData[rsiData.length - 1]);
-                if (!isNaN(currentRsi)) {
-                    if (currentRsi < 30) {
-                        result.rsi = '买入';
-                    } else if (currentRsi > 70) {
-                        result.rsi = '卖出';
-                    }
-                }
-            }
-            
-            // 分析KDJ
-            if (kdjResult.k.length >= 2 && kdjResult.d.length >= 2) {
-                const currentK = parseFloat(kdjResult.k[kdjResult.k.length - 1]);
-                const prevK = parseFloat(kdjResult.k[kdjResult.k.length - 2]);
-                const currentD = parseFloat(kdjResult.d[kdjResult.d.length - 1]);
-                const prevD = parseFloat(kdjResult.d[kdjResult.d.length - 2]);
-                
-                if (!isNaN(currentK) && !isNaN(currentD) && !isNaN(prevK) && !isNaN(prevD)) {
-                    if (currentK > currentD && prevK <= prevD) {
-                        result.kdj = '买入';
-                    } else if (currentK < currentD && prevK >= prevD) {
-                        result.kdj = '卖出';
-                    }
-                }
-            }
-            
-            // 分析BOLL
-            if (bollResult.upper.length >= 1 && bollResult.lower.length >= 1) {
-                const currentPrice = data[data.length - 1][1];
-                const currentUpper = parseFloat(bollResult.upper[bollResult.upper.length - 1]);
-                const currentLower = parseFloat(bollResult.lower[bollResult.lower.length - 1]);
-                
-                if (!isNaN(currentUpper) && !isNaN(currentLower)) {
-                    if (currentPrice <= currentLower) {
-                        result.boll = '买入';
-                    } else if (currentPrice >= currentUpper) {
-                        result.boll = '卖出';
-                    }
-                }
-            }
-            
-            return result;
-        }
-        
-        // 综合多指标的价值判断逻辑
-        function analyzeCompositeIndicator(singleResult) {
-            let buyCount = 0;
-            let sellCount = 0;
-            
-            // 统计买入和卖出信号数量
-            Object.values(singleResult).forEach(signal => {
-                if (signal === '买入') {
-                    buyCount++;
-                } else if (signal === '卖出') {
-                    sellCount++;
-                }
-            });
-            
-            // 基于信号数量生成综合判断
-            if (buyCount >= 3) {
-                return '买入';
-            } else if (sellCount >= 3) {
-                return '卖出';
-            } else if (buyCount === 2 && sellCount === 0) {
-                return '买入';
-            } else if (sellCount === 2 && buyCount === 0) {
-                return '卖出';
-            } else {
-                return '持有';
-            }
-        }
-        
         // 存储当前数据
         let currentStockData = null;
         let currentKlineData = null;
@@ -734,14 +568,19 @@
                 return;
             }
             
-            let symbol = document.getElementById('stock-symbol').value.trim();
+            const symbol = document.getElementById('stock-symbol').value;
             const errorMessage = document.getElementById('error-message');
             
             errorMessage.textContent = '';
             
-            // 处理 "code - name" 格式，只提取 code
-            if (symbol.includes(' - ')) {
-                symbol = symbol.split(' - ')[0].trim();
+            // 判断输入的是股票代码还是公司名称，如果是公司名称则转换为股票代码
+            let stockCode = symbol;
+            const stockName = getStockName(symbol);
+            const codeFromName = getStockCode(symbol);
+            
+            if (codeFromName) {
+                // 输入的是公司名称，转换为股票代码
+                stockCode = codeFromName;
             }
             
             try {
@@ -751,12 +590,12 @@
                 // 显示加载状态
                 chart.setOption({
                     title: {
-                        text: `股票K线图 - ${symbol} (加载中...)`
+                        text: `股票K线图 - ${stockCode} (加载中...)`
                     }
                 });
                 
                 // 调用后端API，增加超时设置
-                axios.get(`http://localhost:5001/api/stock/kline/${symbol}`, {
+                axios.get(`http://localhost:5001/api/stock/kline/${stockCode}`, {
                     timeout: 30000 // 30秒超时
                 })
                     .then(response => {
@@ -765,7 +604,6 @@
                         
                         if (response.data.success) {
                             const data = response.data.data;
-                            currentStockData = data;
                             
                             // 处理数据
                             const dates = [];
@@ -787,11 +625,6 @@
                                 volumeData.push(parseFloat(item.volume));
                             });
                             
-                            currentDates = dates;
-                            currentKlineData = klineData;
-                            currentChineseDates = chineseDates;
-                            currentVolumeData = volumeData;
-                            
                             // 计算MA
                             const ma5 = calculateMA(klineData, 5);
                             const ma10 = calculateMA(klineData, 10);
@@ -799,48 +632,28 @@
                             const ma30 = calculateMA(klineData, 30);
                             const ma60 = calculateMA(klineData, 60);
                             
-                            currentMAData = {
-                                ma5: ma5,
-                                ma10: ma10,
-                                ma20: ma20,
-                                ma30: ma30,
-                                ma60: ma60
-                            };
-                            
                             // 计算成交量均线
                             const volMA5 = calculateVolumeMA(volumeData, 5);
                             const volMA10 = calculateVolumeMA(volumeData, 10);
                             
-                            currentVolumeMAData = {
-                                volMA5: volMA5,
-                                volMA10: volMA10
-                            };
-                            
                             // 计算MACD
                             const macdResult = calculateMACD(klineData);
-                            currentMACDData = macdResult;
-                            
-                            // 计算RSI
-                            const rsi14 = calculateRSI(klineData, 14);
-                            currentRSIData = rsi14;
                             
                             // 计算KDJ
                             const kdjResult = calculateKDJ(klineData);
-                            currentKDJData = kdjResult;
+                            
+                            // 计算RSI
+                            const rsi14 = calculateRSI(klineData, 14);
                             
                             // 计算BOLL
                             const bollResult = calculateBOLL(klineData);
                             currentBOLLData = bollResult;
                             
-                            // 分析股票价值
-                            const singleResult = analyzeSingleIndicator(klineData, volumeData, macdResult, rsi14, kdjResult, bollResult);
-                            const compositeResult = analyzeCompositeIndicator(singleResult);
-                            
                             // 更新图表
                             chart.setOption({
                                 title: [
                                     {
-                                        text: `股票K线图 - ${symbol}`,
+                                        text: titleText,
                                         left: 'center',
                                         top: '5%',
                                         subtext: `综合判断: ${compositeResult} | 买入信号: ${Object.values(singleResult).filter(s => s === '买入').length} | 卖出信号: ${Object.values(singleResult).filter(s => s === '卖出').length}`,
@@ -852,52 +665,27 @@
                                     {
                                         text: 'VOL图',
                                         left: 'center',
-                                        top: '38%',
-                                        subtext: `成交量：反映市场活跃度，量价配合是重要参考 | VOL判断: ${singleResult.vol}`,
-                                        subtextStyle: {
-                                            fontSize: 10,
-                                            color: singleResult.vol === '买入' ? '#4CAF50' : singleResult.vol === '卖出' ? '#f44336' : '#666'
-                                        }
+                                        top: '38%'
                                     },
                                     {
                                         text: 'MACD图',
                                         left: 'center',
-                                        top: '51%',
-                                        subtext: `MACD：由DIF、DEA和柱状图组成，反映趋势和动量 | MACD判断: ${singleResult.macd}`,
-                                        subtextStyle: {
-                                            fontSize: 10,
-                                            color: singleResult.macd === '买入' ? '#4CAF50' : singleResult.macd === '卖出' ? '#f44336' : '#666'
-                                        }
+                                        top: '51%'
                                     },
                                     {
                                         text: 'RSI图',
                                         left: 'center',
-                                        top: '64%',
-                                        subtext: `RSI：0-100取值，>70超买，<30超卖 | RSI判断: ${singleResult.rsi}`,
-                                        subtextStyle: {
-                                            fontSize: 10,
-                                            color: singleResult.rsi === '买入' ? '#4CAF50' : singleResult.rsi === '卖出' ? '#f44336' : '#666'
-                                        }
+                                        top: '64%'
                                     },
                                     {
                                         text: 'KDJ图',
                                         left: 'center',
-                                        top: '77%',
-                                        subtext: `KDJ：K、D、J三线，反映价格强弱和超买超卖 | KDJ判断: ${singleResult.kdj}`,
-                                        subtextStyle: {
-                                            fontSize: 10,
-                                            color: singleResult.kdj === '买入' ? '#4CAF50' : singleResult.kdj === '卖出' ? '#f44336' : '#666'
-                                        }
+                                        top: '77%'
                                     },
                                     {
                                         text: 'BOLL图',
                                         left: 'center',
-                                        top: '90%',
-                                        subtext: `BOLL：由上中下轨组成，反映价格波动区间 | BOLL判断: ${singleResult.boll}`,
-                                        subtextStyle: {
-                                            fontSize: 10,
-                                            color: singleResult.boll === '买入' ? '#4CAF50' : singleResult.boll === '卖出' ? '#f44336' : '#666'
-                                        }
+                                        top: '90%'
                                     }
                                 ],
                                 
@@ -1016,7 +804,7 @@
                                         type: 'inside',
                                         start: 0,
                                         end: 100,
-                                        xAxisIndex: [0, 1, 2, 3, 4, 5]
+                                        xAxisIndex: [0, 1, 2, 3, 4, 5, 6]
                                     },
                                     {
                                         show: true,
@@ -1024,7 +812,7 @@
                                         bottom: '0%',
                                         start: 0,
                                         end: 100,
-                                        xAxisIndex: [0, 1, 2, 3, 4, 5]
+                                        xAxisIndex: [0, 1, 2, 3, 4, 5, 6]
                                     }
                                 ],
                                 
@@ -1033,42 +821,49 @@
                                         left: '3%',
                                         right: '4%',
                                         top: '10%',
-                                        height: '25%',
+                                        height: '18%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
+                                        right: '53%',
+                                        top: '34%',
+                                        height: '14%',
+                                        containLabel: true
+                                    },
+                                    {
+                                        left: '53%',
                                         right: '4%',
-                                        top: '40%',
-                                        height: '8%',
+                                        top: '34%',
+                                        height: '14%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
+                                        right: '53%',
+                                        top: '52%',
+                                        height: '14%',
+                                        containLabel: true
+                                    },
+                                    {
+                                        left: '53%',
                                         right: '4%',
-                                        top: '53%',
-                                        height: '8%',
+                                        top: '52%',
+                                        height: '14%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
-                                        right: '4%',
-                                        top: '66%',
-                                        height: '8%',
+                                        right: '53%',
+                                        top: '70%',
+                                        height: '14%',
                                         containLabel: true
                                     },
                                     {
-                                        left: '3%',
+                                        left: '53%',
                                         right: '4%',
-                                        top: '79%',
-                                        height: '8%',
-                                        containLabel: true
-                                    },
-                                    {
-                                        left: '3%',
-                                        right: '4%',
-                                        top: '92%',
-                                        height: '8%',
+                                        top: '70%',
+                                        height: '14%',
                                         containLabel: true
                                     }
                                 ],
@@ -1077,8 +872,7 @@
                                         type: 'category',
                                         data: chineseDates,
                                         axisLabel: {
-                                            rotate: 45,
-                                            interval: 20 // 减少显示的标签数量，避免拥挤
+                                            show: false
                                         },
                                         splitLine: {
                                             show: false
@@ -1132,6 +926,17 @@
                                         type: 'category',
                                         data: chineseDates,
                                         gridIndex: 5,
+                                        axisLabel: {
+                                            show: false
+                                        },
+                                        splitLine: {
+                                            show: false
+                                        }
+                                    },
+                                    {
+                                        type: 'category',
+                                        data: chineseDates,
+                                        gridIndex: 6,
                                         axisLabel: {
                                             show: false
                                         },
@@ -1168,8 +973,6 @@
                                         type: 'value',
                                         scale: true,
                                         gridIndex: 3,
-                                        min: 0,
-                                        max: 100,
                                         splitArea: {
                                             show: true
                                         }
@@ -1188,6 +991,16 @@
                                         type: 'value',
                                         scale: true,
                                         gridIndex: 5,
+                                        min: 0,
+                                        max: 100,
+                                        splitArea: {
+                                            show: true
+                                        }
+                                    },
+                                    {
+                                        type: 'value',
+                                        scale: true,
+                                        gridIndex: 6,
                                         splitArea: {
                                             show: true
                                         }
@@ -1204,61 +1017,6 @@
                                             color0: '#26a69a',
                                             borderColor: '#ef5350',
                                             borderColor0: '#26a69a'
-                                        }
-                                    },
-                                    // 价值判断信号标记
-                                    {
-                                        name: '买入信号',
-                                        type: 'scatter',
-                                        data: (function() {
-                                            const signals = [];
-                                            // 这里可以根据需要添加买入信号点
-                                            // 暂时只在最后一个数据点添加信号（如果是买入）
-                                            if (compositeResult === '买入') {
-                                                const lastData = klineData[klineData.length - 1];
-                                                signals.push([
-                                                    klineData.length - 1,
-                                                    lastData[3] * 1.02, // 在最高价上方显示
-                                                    '买入'
-                                                ]);
-                                            }
-                                            return signals;
-                                        })(),
-                                        symbolSize: 15,
-                                        itemStyle: {
-                                            color: '#4CAF50'
-                                        },
-                                        label: {
-                                            show: true,
-                                            position: 'top',
-                                            formatter: '{c}'
-                                        }
-                                    },
-                                    {
-                                        name: '卖出信号',
-                                        type: 'scatter',
-                                        data: (function() {
-                                            const signals = [];
-                                            // 这里可以根据需要添加卖出信号点
-                                            // 暂时只在最后一个数据点添加信号（如果是卖出）
-                                            if (compositeResult === '卖出') {
-                                                const lastData = klineData[klineData.length - 1];
-                                                signals.push([
-                                                    klineData.length - 1,
-                                                    lastData[2] * 0.98, // 在最低价下方显示
-                                                    '卖出'
-                                                ]);
-                                            }
-                                            return signals;
-                                        })(),
-                                        symbolSize: 15,
-                                        itemStyle: {
-                                            color: '#f44336'
-                                        },
-                                        label: {
-                                            show: true,
-                                            position: 'bottom',
-                                            formatter: '{c}'
                                         }
                                     },
                                     {
@@ -1314,8 +1072,8 @@
                                     {
                                         name: '成交量',
                                         type: 'bar',
-                                        xAxisIndex: 1,
-                                        yAxisIndex: 1,
+                                        xAxisIndex: 3,
+                                        yAxisIndex: 3,
                                         data: volumeData,
                                         itemStyle: {
                                             color: function(params) {
@@ -1328,10 +1086,11 @@
                                     {
                                         name: 'VOL5',
                                         type: 'line',
-                                        xAxisIndex: 1,
-                                        yAxisIndex: 1,
+                                        xAxisIndex: 3,
+                                        yAxisIndex: 3,
                                         data: volMA5,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#FF9800'
@@ -1340,10 +1099,11 @@
                                     {
                                         name: 'VOL10',
                                         type: 'line',
-                                        xAxisIndex: 1,
-                                        yAxisIndex: 1,
+                                        xAxisIndex: 3,
+                                        yAxisIndex: 3,
                                         data: volMA10,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#2196F3'
@@ -1356,6 +1116,7 @@
                                         yAxisIndex: 2,
                                         data: macdResult.dif.map(val => val.toFixed(4)),
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#FF9800'
@@ -1368,6 +1129,7 @@
                                         yAxisIndex: 2,
                                         data: macdResult.dea.map(val => val.toFixed(4)),
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#2196F3'
@@ -1386,24 +1148,13 @@
                                         }
                                     },
                                     {
-                                        name: 'RSI14',
-                                        type: 'line',
-                                        xAxisIndex: 3,
-                                        yAxisIndex: 3,
-                                        data: rsi14,
-                                        smooth: true,
-                                        lineStyle: {
-                                            width: 1,
-                                            color: '#FF5722'
-                                        }
-                                    },
-                                    {
                                         name: 'K',
                                         type: 'line',
                                         xAxisIndex: 4,
                                         yAxisIndex: 4,
                                         data: kdjResult.k,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#FF9800'
@@ -1416,6 +1167,7 @@
                                         yAxisIndex: 4,
                                         data: kdjResult.d,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#2196F3'
@@ -1428,30 +1180,111 @@
                                         yAxisIndex: 4,
                                         data: kdjResult.j,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#4CAF50'
                                         }
                                     },
                                     {
-                                        name: 'BOLL上轨',
+                                        name: 'MA5',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: ma5,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#FF9800'
+                                        }
+                                    },
+                                    {
+                                        name: 'MA10',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: ma10,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#2196F3'
+                                        }
+                                    },
+                                    {
+                                        name: 'MA20',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: ma20,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#9C27B0'
+                                        }
+                                    },
+                                    {
+                                        name: 'MA30',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: ma30,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#795548'
+                                        }
+                                    },
+                                    {
+                                        name: 'MA60',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: ma60,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#607D8B'
+                                        }
+                                    },
+                                    {
+                                        name: 'RSI14',
                                         type: 'line',
                                         xAxisIndex: 5,
                                         yAxisIndex: 5,
-                                        data: bollResult.upper,
+                                        data: rsi14,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#FF5722'
+                                            color: '#FF9800'
+                                        }
+                                    },
+                                    {
+                                        name: 'BOLL上轨',
+                                        type: 'line',
+                                        xAxisIndex: 6,
+                                        yAxisIndex: 6,
+                                        data: bollResult.upper,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#FF9800'
                                         }
                                     },
                                     {
                                         name: 'BOLL中轨',
                                         type: 'line',
-                                        xAxisIndex: 5,
-                                        yAxisIndex: 5,
-                                        data: bollResult.ma,
+                                        xAxisIndex: 6,
+                                        yAxisIndex: 6,
+                                        data: bollResult.middle,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#2196F3'
@@ -1460,10 +1293,11 @@
                                     {
                                         name: 'BOLL下轨',
                                         type: 'line',
-                                        xAxisIndex: 5,
-                                        yAxisIndex: 5,
+                                        xAxisIndex: 6,
+                                        yAxisIndex: 6,
                                         data: bollResult.lower,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#4CAF50'
@@ -1505,88 +1339,7 @@
             }
         }
         
-        // 导出数据
-        function exportData() {
-            if (!currentStockData) {
-                document.getElementById('error-message').textContent = '提示: 暂无数据可导出，请先获取数据';
-                return;
-            }
-            
-            try {
-                // 准备导出数据
-                const exportData = {
-                    symbol: document.getElementById('stock-symbol').value,
-                    export_time: new Date().toISOString(),
-                    original_data: currentStockData,
-                    processed_data: {
-                        kline_data: currentKlineData,
-                        volume_data: currentVolumeData,
-                        dates: currentDates,
-                        chinese_dates: currentChineseDates
-                    },
-                    indicators: {
-                        ma: currentMAData,
-                        volume_ma: currentVolumeMAData,
-                        macd: currentMACDData,
-                        rsi: currentRSIData,
-                        kdj: currentKDJData,
-                        boll: currentBOLLData
-                    },
-                    metadata: {
-                        data_points: currentStockData.length,
-                        export_format: 'json'
-                    }
-                };
-                
-                // 转换为JSON字符串
-                const jsonString = JSON.stringify(exportData, null, 2);
-                
-                // 创建Blob对象
-                const blob = new Blob([jsonString], { type: 'application/json' });
-                
-                // 创建下载链接
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `stock_data_${exportData.symbol}_${new Date().toISOString().split('T')[0]}.json`;
-                
-                // 触发下载
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                // 释放URL对象
-                URL.revokeObjectURL(url);
-                
-                // 显示成功消息
-                document.getElementById('error-message').textContent = '数据导出成功！';
-                document.getElementById('error-message').style.color = 'green';
-                
-                // 3秒后清除消息
-                setTimeout(() => {
-                    document.getElementById('error-message').textContent = '';
-                }, 3000);
-                
-                // 同时在新窗口中显示数据（可选）
-                const dataStr = JSON.stringify(exportData, null, 2);
-                const dataBlob = new Blob([dataStr], { type: 'text/plain' });
-                const dataUrl = URL.createObjectURL(dataBlob);
-                
-                // 创建一个新窗口显示数据
-                const newWindow = window.open('', '_blank', 'width=800,height=600');
-                newWindow.document.write('<html><head><title>股票数据</title></head><body>');
-                newWindow.document.write('<h1>股票数据详情</h1>');
-                newWindow.document.write('<pre style="font-family: monospace; white-space: pre-wrap;">');
-                newWindow.document.write(dataStr);
-                newWindow.document.write('</pre>');
-                newWindow.document.write('</body></html>');
-                newWindow.document.close();
-                
-            } catch (error) {
-                document.getElementById('error-message').textContent = `导出数据失败: ${error.message}`;
-                console.error('导出数据失败:', error);
-            }
-        }
+
     </script>
 </body>
 </html>
