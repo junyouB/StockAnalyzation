@@ -209,6 +209,56 @@
             return result;
         }
         
+        // 计算RSI指标
+        function calculateRSI(data, period = 14) {
+            const result = [];
+            let gains = [];
+            let losses = [];
+            
+            // 计算每日涨跌幅度
+            for (let i = 1; i < data.length; i++) {
+                const change = data[i][1] - data[i-1][1];
+                if (change > 0) {
+                    gains.push(change);
+                    losses.push(0);
+                } else {
+                    gains.push(0);
+                    losses.push(Math.abs(change));
+                }
+            }
+            
+            // 计算RSI
+            for (let i = 0; i < data.length; i++) {
+                if (i < period) {
+                    result.push('-');
+                    continue;
+                }
+                
+                // 计算平均 gain 和平均 loss
+                let avgGain = 0;
+                let avgLoss = 0;
+                for (let j = 0; j < period; j++) {
+                    avgGain += gains[i-1-j];
+                    avgLoss += losses[i-1-j];
+                }
+                avgGain /= period;
+                avgLoss /= period;
+                
+                // 计算RSI
+                let rsi;
+                if (avgLoss === 0) {
+                    rsi = 100;
+                } else {
+                    const rs = avgGain / avgLoss;
+                    rsi = 100 - (100 / (1 + rs));
+                }
+                
+                result.push(rsi.toFixed(2));
+            }
+            
+            return result;
+        }
+        
         // 计算MACD
         function calculateMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
             const ema12 = [];
@@ -308,6 +358,9 @@
                             // 计算MACD
                             const macdResult = calculateMACD(klineData);
                             
+                            // 计算RSI
+                            const rsi14 = calculateRSI(klineData, 14);
+                            
                             // 更新图表
                             chart.setOption({
                                 title: [
@@ -319,14 +372,20 @@
                                     {
                                         text: 'VOL图',
                                         left: 'center',
-                                        top: '52%'
+                                        top: '45%'
                                     },
                                     {
                                         text: 'MACD图',
                                         left: 'center',
-                                        top: '72%'
+                                        top: '65%'
+                                    },
+                                    {
+                                        text: 'RSI图',
+                                        left: 'center',
+                                        top: '85%'
                                     }
                                 ],
+                                
                                 
                                 
                                 
@@ -367,19 +426,19 @@
                                     }
                                 },
                                 legend: {
-                                    data: ['K线', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', '成交量', 'VOL5', 'VOL10', 'DIF', 'DEA', 'MACD'],
+                                    data: ['K线', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', '成交量', 'VOL5', 'VOL10', 'DIF', 'DEA', 'MACD', 'RSI14'],
                                     bottom: 10
                                 },
                                 dataZoom: [
                                     {
                                         type: 'inside',
-                                        xAxisIndex: [0, 1, 2],
+                                        xAxisIndex: [0, 1, 2, 3],
                                         start: 50,
                                         end: 100
                                     },
                                     {
                                         show: true,
-                                        xAxisIndex: [0, 1, 2],
+                                        xAxisIndex: [0, 1, 2, 3],
                                         type: 'slider',
                                         bottom: 5,
                                         start: 50,
@@ -391,21 +450,28 @@
                                         left: '3%',
                                         right: '4%',
                                         top: '3%',
-                                        height: '45%',
+                                        height: '40%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '4%',
-                                        top: '52%',
-                                        height: '15%',
+                                        top: '48%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '4%',
-                                        top: '72%',
-                                        height: '20%',
+                                        top: '68%',
+                                        height: '12%',
+                                        containLabel: true
+                                    },
+                                    {
+                                        left: '3%',
+                                        right: '4%',
+                                        top: '88%',
+                                        height: '10%',
                                         containLabel: true
                                     }
                                 ],
@@ -442,6 +508,17 @@
                                         splitLine: {
                                             show: false
                                         }
+                                    },
+                                    {
+                                        type: 'category',
+                                        data: chineseDates,
+                                        gridIndex: 3,
+                                        axisLabel: {
+                                            show: false
+                                        },
+                                        splitLine: {
+                                            show: false
+                                        }
                                     }
                                 ],
                                 yAxis: [
@@ -467,8 +544,19 @@
                                         splitArea: {
                                             show: true
                                         }
+                                    },
+                                    {
+                                        type: 'value',
+                                        scale: true,
+                                        gridIndex: 3,
+                                        min: 0,
+                                        max: 100,
+                                        splitArea: {
+                                            show: true
+                                        }
                                     }
                                 ],
+                                
                                 series: [
                                     {
                                         name: 'K线',
@@ -603,6 +691,18 @@
                                             color: function(params) {
                                                 return params.value >= 0 ? '#ef5350' : '#26a69a';
                                             }
+                                        }
+                                    },
+                                    {
+                                        name: 'RSI14',
+                                        type: 'line',
+                                        xAxisIndex: 3,
+                                        yAxisIndex: 3,
+                                        data: rsi14,
+                                        smooth: true,
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#FF5722'
                                         }
                                     }
                                 ]
