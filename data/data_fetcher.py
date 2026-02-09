@@ -1,7 +1,8 @@
 import akshare as ak
 import pandas as pd
+from datetime import datetime, timedelta
 
-def fetch_stock_kline(symbol, start_date="20230101", end_date="20240101", adjust="qfq"):
+def fetch_stock_kline(symbol, start_date=None, end_date=None, adjust="qfq"):
     """
     获取股票K线数据
     
@@ -15,6 +16,17 @@ def fetch_stock_kline(symbol, start_date="20230101", end_date="20240101", adjust
         list: 格式化后的股票K线数据列表
     """
     try:
+        # 如果没有提供日期，使用默认值
+        if not end_date:
+            end_date = datetime.now().strftime("%Y%m%d")
+        if not start_date:
+            # 默认获取最近60天的数据
+            start_date = (datetime.now() - timedelta(days=60)).strftime("%Y%m%d")
+        
+        # 验证股票代码格式
+        if not symbol or not isinstance(symbol, str):
+            raise Exception("股票代码格式错误")
+        
         # 使用AKShare获取股票K线数据
         stock_zh_a_hist_df = ak.stock_zh_a_hist(
             symbol=symbol,
@@ -24,16 +36,20 @@ def fetch_stock_kline(symbol, start_date="20230101", end_date="20240101", adjust
             adjust=adjust
         )
         
+        # 检查数据是否为空
+        if stock_zh_a_hist_df.empty:
+            raise Exception("未获取到股票数据，请检查股票代码是否正确")
+        
         # 转换为前端需要的格式
         data = []
         for index, row in stock_zh_a_hist_df.iterrows():
             data.append({
-                'date': row['日期'],
-                'open': row['开盘'],
-                'high': row['最高'],
-                'low': row['最低'],
-                'close': row['收盘'],
-                'volume': row['成交量']
+                'date': str(row['日期']),
+                'open': float(row['开盘']),
+                'high': float(row['最高']),
+                'low': float(row['最低']),
+                'close': float(row['收盘']),
+                'volume': int(row['成交量'])
             })
         
         return data
