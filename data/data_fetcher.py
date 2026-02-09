@@ -1,61 +1,41 @@
+import akshare as ak
 import pandas as pd
-import numpy as np
-import requests
-from typing import Optional, Dict, Any
 
-class DataFetcher:
-    def __init__(self):
-        pass
+def fetch_stock_kline(symbol, start_date="20230101", end_date="20240101", adjust="qfq"):
+    """
+    获取股票K线数据
     
-    def get_stock_data(self, symbol: str, period: str = '1y', interval: str = '1d') -> Optional[pd.DataFrame]:
-        """
-        获取股票历史数据
-        
-        Args:
-            symbol: 股票代码
-            period: 时间周期，如 '1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'
-            interval: 数据间隔，如 '1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'
-            
-        Returns:
-            包含股票数据的DataFrame，失败返回None
-        """
-        try:
-            # 这里使用yfinance作为示例，实际项目中可以替换为其他数据源
-            import yfinance as yf
-            df = yf.download(symbol, period=period, interval=interval)
-            if df.empty:
-                return None
-            return df
-        except Exception as e:
-            print(f"获取数据失败: {e}")
-            return None
+    Args:
+        symbol: 股票代码
+        start_date: 开始日期，格式为"YYYYMMDD"
+        end_date: 结束日期，格式为"YYYYMMDD"
+        adjust: 复权类型，可选值："qfq"(前复权), "hfq"(后复权), ""(不复权)
     
-    def get_realtime_data(self, symbol: str) -> Optional[Dict[str, Any]]:
-        """
-        获取股票实时数据
+    Returns:
+        list: 格式化后的股票K线数据列表
+    """
+    try:
+        # 使用AKShare获取股票K线数据
+        stock_zh_a_hist_df = ak.stock_zh_a_hist(
+            symbol=symbol,
+            period="daily",
+            start_date=start_date,
+            end_date=end_date,
+            adjust=adjust
+        )
         
-        Args:
-            symbol: 股票代码
-            
-        Returns:
-            包含实时数据的字典，失败返回None
-        """
-        try:
-            import yfinance as yf
-            ticker = yf.Ticker(symbol)
-            data = ticker.history(period='1d')
-            if data.empty:
-                return None
-            
-            return {
-                'symbol': symbol,
-                'price': data['Close'].iloc[-1],
-                'open': data['Open'].iloc[-1],
-                'high': data['High'].iloc[-1],
-                'low': data['Low'].iloc[-1],
-                'volume': data['Volume'].iloc[-1],
-                'datetime': data.index[-1].strftime('%Y-%m-%d %H:%M:%S')
-            }
-        except Exception as e:
-            print(f"获取实时数据失败: {e}")
-            return None
+        # 转换为前端需要的格式
+        data = []
+        for index, row in stock_zh_a_hist_df.iterrows():
+            data.append({
+                'date': row['日期'],
+                'open': row['开盘'],
+                'high': row['最高'],
+                'low': row['最低'],
+                'close': row['收盘'],
+                'volume': row['成交量']
+            })
+        
+        return data
+    except Exception as e:
+        raise Exception(f"获取股票数据失败: {str(e)}")
