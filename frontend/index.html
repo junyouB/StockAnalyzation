@@ -29,11 +29,15 @@
         .input-section {
             margin-bottom: 20px;
             text-align: center;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
         }
         .input-section input {
             padding: 8px 12px;
             font-size: 16px;
-            width: 200px;
+            width: 300px;
             margin-right: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -46,9 +50,46 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            margin-right: 10px;
         }
         .input-section button:hover {
             background-color: #45a049;
+        }
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: none;
+        }
+        .search-results.show {
+            display: block;
+        }
+        .search-result-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .search-result-code {
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .search-result-name {
+            color: #666;
+            margin-left: 10px;
         }
         #chart-container {
             width: 100%;
@@ -63,11 +104,15 @@
 </head>
 <body>
     <div class="container">
-        <h1>股票K线可视化</h1>
-        
-        <div class="input-section">
-            <input type="text" id="stock-symbol" placeholder="输入股票代码，例如：000001" value="000001">
+        <div class="input-section" style="position: relative;">
+            <select id="exchange" style="padding: 8px 12px; font-size: 16px; margin-right: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="sh" selected>上海 (sh)</option>
+                <option value="sz">深圳 (sz)</option>
+                <option value="bj">北京 (bj)</option>
+            </select>
+            <input type="text" id="stock-symbol" placeholder="输入股票代码，例如：600000" value="600000">
             <button onclick="fetchStockData()">获取数据</button>
+            <button onclick="exportData()">导出数据</button>
         </div>
         
         <div id="chart-container"></div>
@@ -413,6 +458,19 @@
             return { dif, dea, macd };
         }
         
+        // 存储当前数据
+        let currentStockData = null;
+        let currentKlineData = null;
+        let currentVolumeData = null;
+        let currentDates = null;
+        let currentChineseDates = null;
+        let currentMAData = null;
+        let currentVolumeMAData = null;
+        let currentMACDData = null;
+        let currentRSIData = null;
+        let currentKDJData = null;
+        let currentBOLLData = null;
+        
         // 获取股票数据
         function fetchStockData() {
             if (!chart) {
@@ -426,10 +484,21 @@
                 return;
             }
             
-            const symbol = document.getElementById('stock-symbol').value;
+            let symbol = document.getElementById('stock-symbol').value.trim();
+            const exchange = document.getElementById('exchange').value;
             const errorMessage = document.getElementById('error-message');
             
             errorMessage.textContent = '';
+            
+            if (!symbol) {
+                errorMessage.textContent = '请输入股票代码';
+                return;
+            }
+            
+            // 处理股票代码，添加交易所前缀
+            if (!symbol.includes('.')) {
+                symbol = `${exchange}.${symbol}`;
+            }
             
             try {
                 // 设置请求状态为正在请求
@@ -452,6 +521,7 @@
                         
                         if (response.data.success) {
                             const data = response.data.data;
+                            currentStockData = data;
                             
                             // 处理数据
                             const dates = [];
@@ -473,6 +543,11 @@
                                 volumeData.push(parseFloat(item.volume));
                             });
                             
+                            currentDates = dates;
+                            currentKlineData = klineData;
+                            currentChineseDates = chineseDates;
+                            currentVolumeData = volumeData;
+                            
                             // 计算MA
                             const ma5 = calculateMA(klineData, 5);
                             const ma10 = calculateMA(klineData, 10);
@@ -480,21 +555,38 @@
                             const ma30 = calculateMA(klineData, 30);
                             const ma60 = calculateMA(klineData, 60);
                             
+                            currentMAData = {
+                                ma5: ma5,
+                                ma10: ma10,
+                                ma20: ma20,
+                                ma30: ma30,
+                                ma60: ma60
+                            };
+                            
                             // 计算成交量均线
                             const volMA5 = calculateVolumeMA(volumeData, 5);
                             const volMA10 = calculateVolumeMA(volumeData, 10);
                             
+                            currentVolumeMAData = {
+                                volMA5: volMA5,
+                                volMA10: volMA10
+                            };
+                            
                             // 计算MACD
                             const macdResult = calculateMACD(klineData);
+                            currentMACDData = macdResult;
                             
                             // 计算RSI
                             const rsi14 = calculateRSI(klineData, 14);
+                            currentRSIData = rsi14;
                             
                             // 计算KDJ
                             const kdjResult = calculateKDJ(klineData);
+                            currentKDJData = kdjResult;
                             
                             // 计算BOLL
                             const bollResult = calculateBOLL(klineData);
+                            currentBOLLData = bollResult;
                             
                             // 更新图表
                             chart.setOption({
@@ -1031,7 +1123,88 @@
             }
         }
         
-
+        // 导出数据
+        function exportData() {
+            if (!currentStockData) {
+                document.getElementById('error-message').textContent = '提示: 暂无数据可导出，请先获取数据';
+                return;
+            }
+            
+            try {
+                // 准备导出数据
+                const exportData = {
+                    symbol: document.getElementById('stock-symbol').value,
+                    export_time: new Date().toISOString(),
+                    original_data: currentStockData,
+                    processed_data: {
+                        kline_data: currentKlineData,
+                        volume_data: currentVolumeData,
+                        dates: currentDates,
+                        chinese_dates: currentChineseDates
+                    },
+                    indicators: {
+                        ma: currentMAData,
+                        volume_ma: currentVolumeMAData,
+                        macd: currentMACDData,
+                        rsi: currentRSIData,
+                        kdj: currentKDJData,
+                        boll: currentBOLLData
+                    },
+                    metadata: {
+                        data_points: currentStockData.length,
+                        export_format: 'json'
+                    }
+                };
+                
+                // 转换为JSON字符串
+                const jsonString = JSON.stringify(exportData, null, 2);
+                
+                // 创建Blob对象
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                
+                // 创建下载链接
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `stock_data_${exportData.symbol}_${new Date().toISOString().split('T')[0]}.json`;
+                
+                // 触发下载
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // 释放URL对象
+                URL.revokeObjectURL(url);
+                
+                // 显示成功消息
+                document.getElementById('error-message').textContent = '数据导出成功！';
+                document.getElementById('error-message').style.color = 'green';
+                
+                // 3秒后清除消息
+                setTimeout(() => {
+                    document.getElementById('error-message').textContent = '';
+                }, 3000);
+                
+                // 同时在新窗口中显示数据（可选）
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'text/plain' });
+                const dataUrl = URL.createObjectURL(dataBlob);
+                
+                // 创建一个新窗口显示数据
+                const newWindow = window.open('', '_blank', 'width=800,height=600');
+                newWindow.document.write('<html><head><title>股票数据</title></head><body>');
+                newWindow.document.write('<h1>股票数据详情</h1>');
+                newWindow.document.write('<pre style="font-family: monospace; white-space: pre-wrap;">');
+                newWindow.document.write(dataStr);
+                newWindow.document.write('</pre>');
+                newWindow.document.write('</body></html>');
+                newWindow.document.close();
+                
+            } catch (error) {
+                document.getElementById('error-message').textContent = `导出数据失败: ${error.message}`;
+                console.error('导出数据失败:', error);
+            }
+        }
     </script>
 </body>
 </html>
