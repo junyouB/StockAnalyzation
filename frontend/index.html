@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票技术分析工具</title>
+    <!-- 引入外部库 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- 自定义样式 -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .signal-buy {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .signal-sell {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .signal-hold {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .chart-container {
+            height: 400px;
+            position: relative;
+        }
+        .metric-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .metric-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary {
+            background-color: #667eea;
+            border-color: #667eea;
+        }
+        .btn-primary:hover {
+            background-color: #5a6fd8;
+            border-color: #5a6fd8;
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部 -->
+    <header class="header text-center">
+        <div class="container">
+            <h1 class="display-4">📈 股票技术分析工具</h1>
+            <p class="lead">专业的股票技术分析，助您做出明智的投资决策</p>
+        </div>
+    </header>
+
+    <!-- 主内容 -->
+    <div class="container mb-5">
+        <!-- 搜索和参数设置 -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="card-title mb-4">参数设置</h2>
+                <form id="analysis-form">
+                    <div class="row g-3">
+                        <!-- 股票代码 -->
+                        <div class="col-md-4">
+                            <label for="symbol" class="form-label">股票代码</label>
+                            <input type="text" class="form-control" id="symbol" placeholder="例如: AAPL, MSFT, GOOGL" value="AAPL">
+                        </div>
+                        <!-- 时间周期 -->
+                        <div class="col-md-3">
+                            <label for="period" class="form-label">时间周期</label>
+                            <select class="form-select" id="period">
+                                <option value="1d">1天</option>
+                                <option value="5d">5天</option>
+                                <option value="1mo">1个月</option>
+                                <option value="3mo">3个月</option>
+                                <option value="6mo">6个月</option>
+                                <option value="1y" selected>1年</option>
+                                <option value="2y">2年</option>
+                                <option value="5y">5年</option>
+                                <option value="10y">10年</option>
+                                <option value="max">最大</option>
+                            </select>
+                        </div>
+                        <!-- 数据间隔 -->
+                        <div class="col-md-3">
+                            <label for="interval" class="form-label">数据间隔</label>
+                            <select class="form-select" id="interval">
+                                <option value="1m">1分钟</option>
+                                <option value="5m">5分钟</option>
+                                <option value="15m">15分钟</option>
+                                <option value="30m">30分钟</option>
+                                <option value="1h">1小时</option>
+                                <option value="1d" selected>1天</option>
+                                <option value="1wk">1周</option>
+                                <option value="1mo">1个月</option>
+                            </select>
+                        </div>
+                        <!-- 分析按钮 -->
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">开始分析</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 指标选择 -->
+                    <div class="row g-3 mt-4">
+                        <div class="col-md-12">
+                            <h3 class="h5">指标选择</h3>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="show-ma" checked>
+                                <label class="form-check-label" for="show-ma">移动平均线</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="show-macd" checked>
+                                <label class="form-check-label" for="show-macd">MACD</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="show-rsi" checked>
+                                <label class="form-check-label" for="show-rsi">RSI</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="show-bollinger" checked>
+                                <label class="form-check-label" for="show-bollinger">布林带</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div id="loading" class="alert alert-info text-center mb-4" style="display: none;">
+            <h4 class="alert-heading">正在分析数据...</h4>
+            <p>请稍候，正在获取股票数据并计算技术指标</p>
+        </div>
+
+        <!-- 信号提示 -->
+        <div id="signal-alert" class="alert mb-4" style="display: none;"></div>
+
+        <!-- 数据概览 -->
+        <div id="data-overview" class="row g-3 mb-4" style="display: none;">
+            <div class="col-md-2">
+                <div class="metric-card">
+                    <div class="metric-label">最新价格</div>
+                    <div class="metric-value" id="latest-price"></div>
+                    <div id="price-change" class="small"></div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="metric-card">
+                    <div class="metric-label">开盘价</div>
+                    <div class="metric-value" id="open-price"></div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="metric-card">
+                    <div class="metric-label">最高价</div>
+                    <div class="metric-value" id="high-price"></div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="metric-card">
+                    <div class="metric-label">最低价</div>
+                    <div class="metric-value" id="low-price"></div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="metric-card">
+                    <div class="metric-label">成交量</div>
+                    <div class="metric-value" id="volume"></div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="metric-card">
+                    <div class="metric-label">最新信号</div>
+                    <div class="metric-value" id="latest-signal"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="row mb-4">
+            <!-- K线图 -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">K线图</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="candlestick-chart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- 技术指标 -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">技术指标</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="indicators-chart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 信号分析 -->
+        <div class="card mb-4" id="signal-analysis" style="display: none;">
+            <div class="card-header">
+                <h3 class="card-title">信号分析</h3>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="metric-card text-center">
+                            <div class="metric-label">买入信号</div>
+                            <div class="metric-value" id="buy-signals"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card text-center">
+                            <div class="metric-label">卖出信号</div>
+                            <div class="metric-value" id="sell-signals"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card text-center">
+                            <div class="metric-label">持有信号</div>
+                            <div class="metric-value" id="hold-signals"></div>
+                        </div>
+                    </div>
+                </div>
+                <h4 class="mb-3">最近信号历史</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>价格</th>
+                                <th>信号</th>
+                            </tr>
+                        </thead>
+                        <tbody id="signal-history"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 原始数据 -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">原始数据</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>开盘价</th>
+                                <th>最高价</th>
+                                <th>最低价</th>
+                                <th>收盘价</th>
+                                <th>成交量</th>
+                            </tr>
+                        </thead>
+                        <tbody id="data-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p>© 2024 股票技术分析工具 | 数据来源: Yahoo Finance</p>
+            <p class="small">本工具仅供参考，不构成投资建议</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 模拟数据
+        const mockData = {
+            symbol: "AAPL",
+            prices: [180, 182, 178, 185, 190, 188, 195, 200, 198, 205],
+            dates: ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05", "2024-01-06", "2024-01-07", "2024-01-08", "2024-01-09", "2024-01-10"],
+            open: [179, 181, 183, 177, 184, 189, 187, 194, 199, 197],
+            high: [181, 183, 180, 186, 191, 189, 196, 201, 199, 206],
+            low: [178, 180, 177, 184, 189, 187, 194, 199, 197, 204],
+            close: [180, 182, 178, 185, 190, 188, 195, 200, 198, 205],
+            volume: [1000000, 1200000, 900000, 1500000, 1800000, 1300000, 1600000, 2000000, 1400000, 1900000],
+            signals: [0, 1, -1, 0, 1, 0, 1, 0, -1, 1]
+        };
+
+        // 初始化图表
+        let candlestickChart = null;
+        let indicatorsChart = null;
+
+        // 表单提交事件
+        document.getElementById('analysis-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 显示加载状态
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('signal-alert').style.display = 'none';
+            document.getElementById('data-overview').style.display = 'none';
+            document.getElementById('signal-analysis').style.display = 'none';
+
+            // 获取表单数据
+            const symbol = document.getElementById('symbol').value;
+            const period = document.getElementById('period').value;
+            const interval = document.getElementById('interval').value;
+            const showMA = document.getElementById('show-ma').checked;
+            const showMACD = document.getElementById('show-macd').checked;
+            const showRSI = document.getElementById('show-rsi').checked;
+            const showBollinger = document.getElementById('show-bollinger').checked;
+
+            // 模拟API请求延迟
+            setTimeout(() => {
+                // 隐藏加载状态
+                document.getElementById('loading').style.display = 'none';
+                
+                // 显示结果
+                displayResults(symbol);
+                renderCharts();
+                renderDataTable();
+                renderSignalAnalysis();
+            }, 1500);
+        });
+
+        // 显示结果
+        function displayResults(symbol) {
+            // 计算涨跌幅
+            const latestPrice = mockData.close[mockData.close.length - 1];
+            const prevPrice = mockData.close[mockData.close.length - 2];
+            const change = latestPrice - prevPrice;
+            const changePercent = (change / prevPrice) * 100;
+
+            // 更新数据概览
+            document.getElementById('latest-price').textContent = `$${latestPrice.toFixed(2)}`;
+            document.getElementById('price-change').textContent = `${change > 0 ? '+' : ''}${change.toFixed(2)} (${changePercent > 0 ? '+' : ''}${changePercent.toFixed(2)}%)`;
+            document.getElementById('price-change').className = `small ${change >= 0 ? 'text-success' : 'text-danger'}`;
+            document.getElementById('open-price').textContent = `$${mockData.open[mockData.open.length - 1].toFixed(2)}`;
+            document.getElementById('high-price').textContent = `$${mockData.high[mockData.high.length - 1].toFixed(2)}`;
+            document.getElementById('low-price').textContent = `$${mockData.low[mockData.low.length - 1].toFixed(2)}`;
+            document.getElementById('volume').textContent = mockData.volume[mockData.volume.length - 1].toLocaleString();
+
+            // 获取最新信号
+            const latestSignal = mockData.signals[mockData.signals.length - 1];
+            let signalText = '';
+            let signalClass = '';
+            let alertClass = '';
+
+            switch(latestSignal) {
+                case 1:
+                    signalText = '买入';
+                    signalClass = 'signal-buy';
+                    alertClass = 'alert-success';
+                    break;
+                case -1:
+                    signalText = '卖出';
+                    signalClass = 'signal-sell';
+                    alertClass = 'alert-danger';
+                    break;
+                default:
+                    signalText = '持有';
+                    signalClass = 'signal-hold';
+                    alertClass = 'alert-warning';
+            }
+
+            // 显示信号
+            document.getElementById('latest-signal').textContent = signalText;
+            document.getElementById('latest-signal').className = `metric-value ${signalClass}`;
+
+            // 显示信号警报
+            const signalAlert = document.getElementById('signal-alert');
+            signalAlert.className = `alert ${alertClass} mb-4`;
+            signalAlert.innerHTML = `<strong>${signalText}信号</strong> - 股票 ${symbol} 目前处于${signalText}区间`;
+            signalAlert.style.display = 'block';
+
+            // 显示数据概览
+            document.getElementById('data-overview').style.display = 'flex';
+        }
+
+        // 渲染图表
+        function renderCharts() {
+            // 渲染K线图
+            renderCandlestickChart();
+            // 渲染指标图
+            renderIndicatorsChart();
+        }
+
+        // 渲染K线图
+        function renderCandlestickChart() {
+            const chartDom = document.getElementById('candlestick-chart');
+            candlestickChart = echarts.init(chartDom);
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross'
+                    }
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: mockData.dates,
+                    axisLabel: {
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    scale: true
+                },
+                series: [{
+                    name: 'K线',
+                    type: 'candlestick',
+                    data: mockData.dates.map((date, index) => [
+                        mockData.open[index],
+                        mockData.close[index],
+                        mockData.low[index],
+                        mockData.high[index]
+                    ]),
+                    itemStyle: {
+                        color: '#28a745',
+                        color0: '#dc3545',
+                        borderColor: '#28a745',
+                        borderColor0: '#dc3545'
+                    }
+                }]
+            };
+
+            candlestickChart.setOption(option);
+        }
+
+        // 渲染指标图
+        function renderIndicatorsChart() {
+            const chartDom = document.getElementById('indicators-chart');
+            indicatorsChart = echarts.init(chartDom);
+
+            // 计算模拟RSI
+            const rsi = [];
+            for (let i = 0; i < mockData.prices.length; i++) {
+                rsi.push(50 + Math.sin(i) * 30);
+            }
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis'
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: mockData.dates,
+                    axisLabel: {
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    min: 0,
+                    max: 100,
+                    axisLabel: {
+                        formatter: '{value}'
+                    }
+                },
+                series: [{
+                    name: 'RSI',
+                    type: 'line',
+                    data: rsi,
+                    smooth: true,
+                    lineStyle: {
+                        color: '#667eea'
+                    },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(102, 126, 234, 0.5)' },
+                            { offset: 1, color: 'rgba(102, 126, 234, 0.1)' }
+                        ])
+                    }
+                }]
+            };
+
+            indicatorsChart.setOption(option);
+        }
+
+        // 渲染数据表格
+        function renderDataTable() {
+            const tbody = document.getElementById('data-table');
+            tbody.innerHTML = '';
+
+            // 显示最近10条数据
+            const recentData = mockData.dates.slice(-10).map((date, index) => {
+                const dataIndex = mockData.dates.length - 10 + index;
+                return {
+                    date: date,
+                    open: mockData.open[dataIndex],
+                    high: mockData.high[dataIndex],
+                    low: mockData.low[dataIndex],
+                    close: mockData.close[dataIndex],
+                    volume: mockData.volume[dataIndex]
+                };
+            });
+
+            recentData.forEach(data => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${data.date}</td>
+                    <td>$${data.open.toFixed(2)}</td>
+                    <td>$${data.high.toFixed(2)}</td>
+                    <td>$${data.low.toFixed(2)}</td>
+                    <td>$${data.close.toFixed(2)}</td>
+                    <td>${data.volume.toLocaleString()}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 渲染信号分析
+        function renderSignalAnalysis() {
+            // 统计信号
+            const signalCounts = {
+                buy: mockData.signals.filter(s => s === 1).length,
+                sell: mockData.signals.filter(s => s === -1).length,
+                hold: mockData.signals.filter(s => s === 0).length
+            };
+
+            // 更新信号计数
+            document.getElementById('buy-signals').textContent = signalCounts.buy;
+            document.getElementById('sell-signals').textContent = signalCounts.sell;
+            document.getElementById('hold-signals').textContent = signalCounts.hold;
+
+            // 渲染信号历史
+            const tbody = document.getElementById('signal-history');
+            tbody.innerHTML = '';
+
+            // 显示最近10条信号
+            const recentSignals = mockData.dates.slice(-10).map((date, index) => {
+                const dataIndex = mockData.dates.length - 10 + index;
+                return {
+                    date: date,
+                    price: mockData.close[dataIndex],
+                    signal: mockData.signals[dataIndex]
+                };
+            });
+
+            recentSignals.forEach(signal => {
+                let signalText = '';
+                let signalClass = '';
+
+                switch(signal.signal) {
+                    case 1:
+                        signalText = '买入';
+                        signalClass = 'signal-buy';
+                        break;
+                    case -1:
+                        signalText = '卖出';
+                        signalClass = 'signal-sell';
+                        break;
+                    default:
+                        signalText = '持有';
+                        signalClass = 'signal-hold';
+                }
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${signal.date}</td>
+                    <td>$${signal.price.toFixed(2)}</td>
+                    <td class="${signalClass}">${signalText}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // 显示信号分析
+            document.getElementById('signal-analysis').style.display = 'block';
+        }
+
+        // 窗口大小改变时重绘图表
+        window.addEventListener('resize', function() {
+            if (candlestickChart) {
+                candlestickChart.resize();
+            }
+            if (indicatorsChart) {
+                indicatorsChart.resize();
+            }
+        });
+    </script>
+</body>
+</html>
