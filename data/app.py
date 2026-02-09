@@ -13,8 +13,8 @@ CORS(app)
 @app.route('/api/stock/kline/<symbol>', methods=['GET'])
 def get_stock_kline(symbol):
     try:
-        # 使用分离的模块获取股票K线数据
-        data = fetch_stock_kline(symbol)
+        # 使用东方财富网数据源获取股票K线数据
+        data = fetch_stock_kline(symbol, use_eastmoney=True)
         
         return jsonify({
             'success': True,

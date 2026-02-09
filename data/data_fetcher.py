@@ -1,5 +1,6 @@
 import baostock as bs
 import pandas as pd
+import requests
 from datetime import datetime, timedelta
 import logging
 import time
@@ -417,7 +418,7 @@ def fetch_stock_kline(symbol, start_date=None, end_date=None, adjust="qfq", max_
         start_date: 开始日期，格式为"YYYY-MM-DD"
         end_date: 结束日期，格式为"YYYY-MM-DD"
         adjust: 复权类型，可选值："qfq"(前复权), "hfq"(后复权), ""(不复权)
-        max_retries: 最大重试次数
+        use_eastmoney: 是否使用东方财富网数据源
     
     Returns:
         list: 格式化后的股票K线数据列表

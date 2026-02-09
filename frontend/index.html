@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>股票K线可视化</title>
     <!-- 引入ECharts -->
-    <script src="https://unpkg.com/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
     <!-- 引入Axios -->
-    <script src="https://unpkg.com/axios@1.6.2/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -123,6 +123,68 @@
     <script>
         let chart;
         let isRequesting = false; // 请求状态标志
+        
+        // 股票代码到公司名称的映射
+        const stockNameMap = {
+            '600036': '招商银行',
+            '000001': '平安银行',
+            '000002': '万科A',
+            '600519': '贵州茅台',
+            '601318': '中国平安',
+            '600030': '中芯国际',
+            '601888': '中国中车',
+            '600000': '浦发银行',
+            '601398': '工商银行',
+            '601988': '中国银行',
+            '600028': '中国石化',
+            '601857': '中国石油'
+        };
+        
+        // 公司名称到股票代码的映射（反向映射）
+        const nameToStockCodeMap = {
+            '招商银行': '600036',
+            '平安银行': '000001',
+            '万科A': '000002',
+            '贵州茅台': '600519',
+            '中国平安': '601318',
+            '中芯国际': '600030',
+            '中国中车': '601888',
+            '浦发银行': '600000',
+            '工商银行': '601398',
+            '中国银行': '601988',
+            '中国石化': '600028',
+            '中国石油': '601857'
+        };
+        
+        // 根据股票代码获取公司名称
+        function getStockName(symbol) {
+            return stockNameMap[symbol] || '';
+        }
+        
+        // 根据公司名称获取股票代码
+        function getStockCode(name) {
+            return nameToStockCodeMap[name] || '';
+        }
+        
+        // 当股票代码或公司名称输入时，显示对应信息
+        function fetchStockName() {
+            const input = document.getElementById('stock-symbol').value;
+            const stockNameElement = document.getElementById('stock-name');
+            
+            // 判断输入的是股票代码还是公司名称
+            const stockCode = getStockCode(input);
+            const stockName = getStockName(input);
+            
+            if (stockCode && !stockName) {
+                // 输入的是公司名称，显示股票代码
+                stockNameElement.textContent = `股票代码：${stockCode}`;
+            } else if (stockName && !stockCode) {
+                // 输入的是股票代码，显示公司名称
+                stockNameElement.textContent = `（${stockName}）`;
+            } else {
+                stockNameElement.textContent = '';
+            }
+        }
         
         // 页面加载完成后初始化
         window.onload = function() {
@@ -507,12 +569,12 @@
                 // 显示加载状态
                 chart.setOption({
                     title: {
-                        text: `股票K线图 - ${symbol} (加载中...)`
+                        text: `股票K线图 - ${stockCode} (加载中...)`
                     }
                 });
                 
                 // 调用后端API，增加超时设置
-                axios.get(`http://localhost:5001/api/stock/kline/${symbol}`, {
+                axios.get(`http://localhost:5001/api/stock/kline/${stockCode}`, {
                     timeout: 30000 // 30秒超时
                 })
                     .then(response => {
@@ -588,11 +650,15 @@
                             const bollResult = calculateBOLL(klineData);
                             currentBOLLData = bollResult;
                             
+                            // 获取股票名称
+                            const stockName = getStockName(symbol);
+                            const titleText = stockName ? `股票K线图 - ${symbol}（${stockName}）` : `股票K线图 - ${symbol}`;
+                            
                             // 更新图表
                             chart.setOption({
                                 title: [
                                     {
-                                        text: `股票K线图 - ${symbol}`,
+                                        text: titleText,
                                         left: 'center',
                                         top: '5%'
                                     },
@@ -884,6 +950,7 @@
                                         type: 'line',
                                         data: ma5,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#FF9800'
@@ -894,6 +961,7 @@
                                         type: 'line',
                                         data: ma10,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#2196F3'
@@ -904,6 +972,7 @@
                                         type: 'line',
                                         data: ma20,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#9C27B0'
@@ -914,6 +983,7 @@
                                         type: 'line',
                                         data: ma30,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#795548'
@@ -924,6 +994,7 @@
                                         type: 'line',
                                         data: ma60,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#607D8B'
@@ -950,6 +1021,7 @@
                                         yAxisIndex: 1,
                                         data: volMA5,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#FF9800'
@@ -962,6 +1034,7 @@
                                         yAxisIndex: 1,
                                         data: volMA10,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#2196F3'
@@ -974,6 +1047,7 @@
                                         yAxisIndex: 2,
                                         data: macdResult.dif.map(val => val.toFixed(4)),
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#FF9800'
@@ -986,6 +1060,7 @@
                                         yAxisIndex: 2,
                                         data: macdResult.dea.map(val => val.toFixed(4)),
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#2196F3'
@@ -1010,6 +1085,7 @@
                                         yAxisIndex: 3,
                                         data: rsi14,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#FF5722'
@@ -1022,6 +1098,7 @@
                                         yAxisIndex: 4,
                                         data: kdjResult.k,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#FF9800'
@@ -1034,6 +1111,7 @@
                                         yAxisIndex: 4,
                                         data: kdjResult.d,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#2196F3'
@@ -1046,6 +1124,7 @@
                                         yAxisIndex: 4,
                                         data: kdjResult.j,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#4CAF50'
@@ -1058,6 +1137,7 @@
                                         yAxisIndex: 5,
                                         data: bollResult.upper,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#FF5722'
@@ -1070,6 +1150,7 @@
                                         yAxisIndex: 5,
                                         data: bollResult.ma,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#2196F3'
@@ -1082,6 +1163,7 @@
                                         yAxisIndex: 5,
                                         data: bollResult.lower,
                                         smooth: true,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
                                             color: '#4CAF50'
