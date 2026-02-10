@@ -845,33 +845,33 @@
     <!-- 曲线分析页面 -->
     <div id="curve-analysis" class="page">
         <div style="padding: 20px; min-height: calc(100vh - 70px);">
-            <h2 style="color: #ffffff; margin-bottom: 10px; text-align: center;">曲线匹配 (Curve Matching)</h2>
-            <p style="color: #888; margin-bottom: 30px; text-align: center;">Draw a shape to find similar stock patterns in the last 20 trading days.</p>
+            <h2 style="color: #ffffff; margin-bottom: 10px; text-align: center;">曲线匹配</h2>
+            <p style="color: #888; margin-bottom: 30px; text-align: center;">绘制形状以查找最近20个交易日的相似股票模式。</p>
             
             <div class="editor-container">
-                <h3 style="color: #e0e0e0; margin-bottom: 15px;">Pattern Editor</h3>
+                <h3 style="color: #e0e0e0; margin-bottom: 15px;">模式编辑器</h3>
                 <canvas id="curveEditor" width="800" height="300"></canvas>
-                <div class="helper-text">Click on the line to add control points. Drag points to adjust shape. Double click a point to remove it.</div>
+                <div class="helper-text">点击线条添加控制点。拖动点调整形状。双击点删除。</div>
                 
                 <div class="controls">
-                    <button class="curve-btn btn-secondary" onclick="resetEditor()">Reset Line</button>
-                    <button class="curve-btn btn-primary" onclick="runCurveSearch()">Match Pattern</button>
+                    <button class="curve-btn btn-secondary" onclick="resetEditor()">重置线条</button>
+                    <button class="curve-btn btn-primary" onclick="runCurveSearch()">匹配模式</button>
                     <span id="latency"></span>
                 </div>
             </div>
 
-            <h3 style="color: #e0e0e0; margin-bottom: 15px;">Top 3 Matches</h3>
+            <h3 style="color: #e0e0e0; margin-bottom: 15px;">最佳3个匹配</h3>
             <div class="row">
                 <div class="col">
-                    <h4 id="match1-title" style="color: #e0e0e0; margin-bottom: 10px;">Match 1</h4>
+                    <h4 id="match1-title" style="color: #e0e0e0; margin-bottom: 10px;">匹配1</h4>
                     <div id="match1" class="chart-box"></div>
                 </div>
                 <div class="col">
-                    <h4 id="match2-title" style="color: #e0e0e0; margin-bottom: 10px;">Match 2</h4>
+                    <h4 id="match2-title" style="color: #e0e0e0; margin-bottom: 10px;">匹配2</h4>
                     <div id="match2" class="chart-box"></div>
                 </div>
                 <div class="col">
-                    <h4 id="match3-title" style="color: #e0e0e0; margin-bottom: 10px;">Match 3</h4>
+                    <h4 id="match3-title" style="color: #e0e0e0; margin-bottom: 10px;">匹配3</h4>
                     <div id="match3" class="chart-box"></div>
                 </div>
             </div>
@@ -2794,7 +2794,7 @@
 
         async function runCurveSearch() {
             const curve = getCurveData();
-            document.getElementById('latency').innerText = 'Searching...';
+            document.getElementById('latency').innerText = '搜索中...';
             
             try {
                 // Assuming backend is on port 5002 for similarity search
@@ -2805,7 +2805,7 @@
                 });
                 const searchData = await searchRes.json();
                 
-                document.getElementById('latency').innerText = `Latency: ${searchData.latency.toFixed(2)} ms`;
+                document.getElementById('latency').innerText = `延迟: ${searchData.latency.toFixed(2)} ms`;
                 
                 matchCharts.forEach(c => c.clear());
                 
@@ -2817,7 +2817,7 @@
                             
                             const titleHtml = `
                                 <div>${res.code} - ${res.name}</div>
-                                <div style="font-size: 0.8em; color: #888; margin: 5px 0;">Dist: ${res.distance.toFixed(2)}</div>
+                                <div style="font-size: 0.8em; color: #888; margin: 5px 0;">距离: ${res.distance.toFixed(2)}</div>
                                 <div class="match-actions">
                                     <button class="match-btn" onclick="copyMatch('${res.code}', '${res.name}')">复制</button>
                                     <button class="match-btn" onclick="addToFavorites('${res.code}', '${res.name}')">收藏</button>
