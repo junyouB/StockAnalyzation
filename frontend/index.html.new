@@ -8,7 +8,6 @@
     <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
     <!-- 引入Axios -->
     <script src="https://cdn.bootcdn.net/ajax/libs/axios/1.6.2/axios.min.js"></script>
-
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -105,9 +104,18 @@
         <div class="input-section" style="position: relative;">
             <input type="text" id="stock-symbol" placeholder="输入股票代码或名称，例如：000001 或 浦发银行" value="000001" oninput="handleSearchInput(this.value)">
             <button onclick="fetchStockData()">获取数据</button>
-            <button onclick="analyzeWithAI()">AI分析</button>
+            <button onclick="exportData()">导出数据</button>
+            <button onclick="generateAIAnalysisData()">生成AI分析数据</button>
             <button class="search-btn" onclick="searchStocks()">搜索</button>
             <div class="search-results" id="search-results"></div>
+            <div id="ai-analysis-container" style="display: none; margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9;">
+                <h3>AI分析数据</h3>
+                <pre id="ai-analysis-data" style="white-space: pre-wrap; word-wrap: break-word; max-height: 400px; overflow-y: auto; background-color: #f0f0f0; padding: 10px; border-radius: 4px;"></pre>
+                <div style="margin-top: 10px;">
+                    <button onclick="copyAIAnalysisData()" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">复制数据</button>
+                    <button onclick="hideAIAnalysisData()" style="padding: 8px 16px; margin-left: 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">关闭</button>
+                </div>
+            </div>
         </div>
         
         <div id="chart-container"></div>
@@ -200,9 +208,32 @@
             '600028': '中国石化',
             '601857': '中国石油'
         };
-    
         
-    
+        // 公司名称到股票代码的映射（反向映射）
+        const nameToStockCodeMap = {
+            '招商银行': '600036',
+            '平安银行': '000001',
+            '万科A': '000002',
+            '贵州茅台': '600519',
+            '中国平安': '601318',
+            '中芯国际': '600030',
+            '中国中车': '601888',
+            '浦发银行': '600000',
+            '工商银行': '601398',
+            '中国银行': '601988',
+            '中国石化': '600028',
+            '中国石油': '601857'
+        };
+        
+        // 根据股票代码获取公司名称
+        function getStockName(symbol) {
+            return stockNameMap[symbol] || '';
+        }
+        
+        // 根据公司名称获取股票代码
+        function getStockCode(name) {
+            return nameToStockCodeMap[name] || '';
+        }
         
         // 当股票代码或公司名称输入时，显示对应信息
         function fetchStockName() {
@@ -210,8 +241,8 @@
             const stockNameElement = document.getElementById('stock-name');
             
             // 判断输入的是股票代码还是公司名称
-            const stockCode = input;
-            const stockName = input;
+            const stockCode = getStockCode(input);
+            const stockName = getStockName(input);
             
             if (stockCode && !stockName) {
                 // 输入的是公司名称，显示股票代码
@@ -724,8 +755,8 @@
             
             // 判断输入的是股票代码还是公司名称，如果是公司名称则转换为股票代码
             let stockCode = symbol;
-            const stockName = symbol;
-            const codeFromName = symbol;
+            const stockName = getStockName(symbol);
+            const codeFromName = getStockCode(symbol);
             
             if (codeFromName) {
                 // 输入的是公司名称，转换为股票代码
@@ -882,6 +913,7 @@
                                         }
                                     }
                                 ],
+                                
                                 tooltip: {
                                     trigger: 'axis',
                                     axisPointer: {
@@ -1004,6 +1036,7 @@
                                         xAxisIndex: [0, 1, 2, 3, 4, 5, 6]
                                     }
                                 ],
+                                
                                 grid: [
                                     {
                                         left: '3%',
@@ -1138,57 +1171,63 @@
                                         type: 'value',
                                         scale: true,
                                         splitArea: {
-                                            show: true,
-                                            areaStyle: {
-                                                color: ['rgba(240, 240, 240, 0.1)', 'rgba(255, 255, 255, 0.1)']
-                                            }
+                                            show: true
                                         }
                                     },
                                     {
                                         type: 'value',
+                                        scale: true,
                                         gridIndex: 1,
-                                        splitLine: {
-                                            show: false
+                                        splitArea: {
+                                            show: true
                                         }
                                     },
                                     {
                                         type: 'value',
+                                        scale: true,
                                         gridIndex: 2,
-                                        splitLine: {
-                                            show: false
+                                        splitArea: {
+                                            show: true
                                         }
                                     },
                                     {
                                         type: 'value',
+                                        scale: true,
                                         gridIndex: 3,
-                                        splitLine: {
-                                            show: false
+                                        splitArea: {
+                                            show: true
                                         }
                                     },
                                     {
                                         type: 'value',
+                                        scale: true,
                                         gridIndex: 4,
-                                        splitLine: {
-                                            show: false
+                                        min: 0,
+                                        max: 100,
+                                        splitArea: {
+                                            show: true
                                         }
                                     },
                                     {
                                         type: 'value',
+                                        scale: true,
                                         gridIndex: 5,
                                         min: 0,
                                         max: 100,
-                                        splitLine: {
-                                            show: false
+                                        splitArea: {
+                                            show: true
                                         }
                                     },
                                     {
                                         type: 'value',
+                                        scale: true,
                                         gridIndex: 6,
-                                        splitLine: {
-                                            show: false
+                                        splitArea: {
+                                            show: true
                                         }
                                     }
                                 ],
+                                
                                 series: [
                                     {
                                         name: 'K线',
@@ -1199,14 +1238,6 @@
                                             color0: '#26a69a',
                                             borderColor: '#ef5350',
                                             borderColor0: '#26a69a'
-                                        },
-                                        emphasis: {
-                                            itemStyle: {
-                                                color: '#ff5722',
-                                                color0: '#4caf50',
-                                                borderColor: '#ff5722',
-                                                borderColor0: '#4caf50'
-                                            }
                                         }
                                     },
                                     {
@@ -1214,10 +1245,10 @@
                                         type: 'line',
                                         data: ma5,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#FF8C00'
+                                            color: '#FF9800'
                                         }
                                     },
                                     {
@@ -1225,10 +1256,10 @@
                                         type: 'line',
                                         data: ma10,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#FFD700'
+                                            color: '#2196F3'
                                         }
                                     },
                                     {
@@ -1236,10 +1267,10 @@
                                         type: 'line',
                                         data: ma20,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#00BFFF'
+                                            color: '#9C27B0'
                                         }
                                     },
                                     {
@@ -1247,10 +1278,10 @@
                                         type: 'line',
                                         data: ma30,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#9370DB'
+                                            color: '#795548'
                                         }
                                     },
                                     {
@@ -1258,10 +1289,10 @@
                                         type: 'line',
                                         data: ma60,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#32CD32'
+                                            color: '#607D8B'
                                         }
                                     },
                                     {
@@ -1272,12 +1303,9 @@
                                         data: volumeData,
                                         itemStyle: {
                                             color: function(params) {
-                                                const index = params.dataIndex;
-                                                if (klineData[index][1] >= klineData[index][0]) {
-                                                    return '#ef5350';
-                                                } else {
-                                                    return '#26a69a';
-                                                }
+                                                // 根据收盘价与开盘价的比较设置成交量颜色
+                                                const klineItem = klineData[params.dataIndex];
+                                                return klineItem[1] >= klineItem[0] ? '#ef5350' : '#26a69a';
                                             }
                                         }
                                     },
@@ -1288,10 +1316,10 @@
                                         yAxisIndex: 3,
                                         data: volMA5,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#FF8C00'
+                                            color: '#FF9800'
                                         }
                                     },
                                     {
@@ -1301,10 +1329,10 @@
                                         yAxisIndex: 3,
                                         data: volMA10,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#FFD700'
+                                            color: '#2196F3'
                                         }
                                     },
                                     {
@@ -1312,12 +1340,12 @@
                                         type: 'line',
                                         xAxisIndex: 2,
                                         yAxisIndex: 2,
-                                        data: macdResult.dif.map(d => d.toFixed(4)),
+                                        data: macdResult.dif.map(val => val.toFixed(4)),
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#FF8C00'
+                                            color: '#FF9800'
                                         }
                                     },
                                     {
@@ -1325,12 +1353,12 @@
                                         type: 'line',
                                         xAxisIndex: 2,
                                         yAxisIndex: 2,
-                                        data: macdResult.dea.map(d => d.toFixed(4)),
+                                        data: macdResult.dea.map(val => val.toFixed(4)),
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#00BFFF'
+                                            color: '#2196F3'
                                         }
                                     },
                                     {
@@ -1338,10 +1366,10 @@
                                         type: 'bar',
                                         xAxisIndex: 2,
                                         yAxisIndex: 2,
-                                        data: macdResult.macd.map(d => d.toFixed(4)),
+                                        data: macdResult.macd.map(val => val.toFixed(4)),
                                         itemStyle: {
                                             color: function(params) {
-                                                return params.data >= 0 ? '#ef5350' : '#26a69a';
+                                                return params.value >= 0 ? '#ef5350' : '#26a69a';
                                             }
                                         }
                                     },
@@ -1352,10 +1380,10 @@
                                         yAxisIndex: 4,
                                         data: kdjResult.k,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#FF8C00'
+                                            color: '#FF9800'
                                         }
                                     },
                                     {
@@ -1365,10 +1393,10 @@
                                         yAxisIndex: 4,
                                         data: kdjResult.d,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#00BFFF'
+                                            color: '#2196F3'
                                         }
                                     },
                                     {
@@ -1378,10 +1406,75 @@
                                         yAxisIndex: 4,
                                         data: kdjResult.j,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#32CD32'
+                                            color: '#4CAF50'
+                                        }
+                                    },
+                                    {
+                                        name: 'MA5',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: ma5,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#FF9800'
+                                        }
+                                    },
+                                    {
+                                        name: 'MA10',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: ma10,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#2196F3'
+                                        }
+                                    },
+                                    {
+                                        name: 'MA20',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: ma20,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#9C27B0'
+                                        }
+                                    },
+                                    {
+                                        name: 'MA30',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: ma30,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#795548'
+                                        }
+                                    },
+                                    {
+                                        name: 'MA60',
+                                        type: 'line',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: ma60,
+                                        smooth: true,
+                                        symbol: 'none',
+                                        lineStyle: {
+                                            width: 1,
+                                            color: '#607D8B'
                                         }
                                     },
                                     {
@@ -1391,332 +1484,256 @@
                                         yAxisIndex: 5,
                                         data: rsi14,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#9370DB'
-                                        },
-                                        markLine: {
-                                            silent: true,
-                                            lineStyle: {
-                                                color: '#999'
-                                            },
-                                            data: [
-                                                { yAxis: 70, name: '超买' },
-                                                { yAxis: 50, name: '中性' },
-                                                { yAxis: 30, name: '超卖' }
-                                            ]
+                                            color: '#FF9800'
                                         }
                                     },
                                     {
                                         name: 'BOLL上轨',
                                         type: 'line',
+                                        xAxisIndex: 6,
+                                        yAxisIndex: 6,
                                         data: bollResult.upper,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#FF8C00'
+                                            color: '#FF9800'
                                         }
                                     },
                                     {
                                         name: 'BOLL中轨',
                                         type: 'line',
+                                        xAxisIndex: 6,
+                                        yAxisIndex: 6,
                                         data: bollResult.ma,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#00BFFF'
+                                            color: '#2196F3'
                                         }
                                     },
                                     {
                                         name: 'BOLL下轨',
                                         type: 'line',
+                                        xAxisIndex: 6,
+                                        yAxisIndex: 6,
                                         data: bollResult.lower,
                                         smooth: true,
-                                        showSymbol: false,
+                                        symbol: 'none',
                                         lineStyle: {
                                             width: 1,
-                                            color: '#32CD32'
+                                            color: '#4CAF50'
                                         }
                                     }
                                 ]
                             });
                             
-                            // 存储当前数据
+                            // 更新当前数据
                             currentStockData = data;
                             currentKlineData = klineData;
                             currentVolumeData = volumeData;
                             currentDates = dates;
                             currentChineseDates = chineseDates;
-                            currentMAData = { ma5, ma10, ma20, ma30, ma60 };
-                            currentVolumeMAData = { volMA5, volMA10 };
-                            currentMACDData = macdResult;
-                            currentRSIData = rsi14;
-                            currentKDJData = kdjResult;
-                            currentBOLLData = bollResult;
-                            
                         } else {
-                            chart.setOption({
-                                title: {
-                                    text: `股票K线图 - ${stockCode} (数据获取失败)`
-                                }
-                            });
-                            errorMessage.textContent = `数据获取失败: ${response.data.error}`;
+                            errorMessage.textContent = `错误: ${response.data.error}`;
                         }
                     })
                     .catch(error => {
-                        console.error('获取股票数据失败:', error);
+                        // 设置请求状态为完成
                         isRequesting = false;
-                        chart.setOption({
-                            title: {
-                                text: `股票K线图 - ${stockCode} (网络错误)`
+                        
+                        if (error.code === 'ECONNABORTED') {
+                            errorMessage.textContent = '错误: 请求超时，请稍后再试';
+                        } else if (error.message.includes('Network Error')) {
+                            errorMessage.textContent = '错误: 网络连接失败，请检查后端服务是否运行';
+                        } else if (error.message.includes('ERR_ABORTED')) {
+                            errorMessage.textContent = '错误: 请求被中止，可能是网络连接问题，请稍后再试';
+                        } else if (error.response) {
+                            // 后端返回了错误响应
+                            if (error.response.status === 500) {
+                                errorMessage.textContent = '错误: 后端服务处理失败，可能是外部API连接问题';
+                            } else {
+                                errorMessage.textContent = `错误: ${error.response.status} - ${error.response.statusText}`;
                             }
-                        });
-                        errorMessage.textContent = `网络错误: ${error.message}`;
+                        } else {
+                            errorMessage.textContent = `请求失败: ${error.message}`;
+                        }
                     });
             } catch (error) {
-                console.error('获取股票数据失败:', error);
+                // 设置请求状态为完成
                 isRequesting = false;
-                errorMessage.textContent = `错误: ${error.message}`;
+                
+                errorMessage.textContent = `获取数据错误: ${error.message}`;
+                console.error('获取数据错误:', error);
             }
         }
         
         // 搜索股票
         function searchStocks() {
-            const keyword = document.getElementById('stock-symbol').value;
+            const keyword = document.getElementById('stock-symbol').value.trim();
+            const resultsDiv = document.getElementById('search-results');
+            
             if (!keyword) {
+                resultsDiv.style.display = 'none';
                 return;
             }
             
-            // 调用后端API搜索股票
-            axios.get(`http://localhost:5001/api/stock/search?keyword=${encodeURIComponent(keyword)}`)
+            axios.get(`http://localhost:5001/api/stock/search?keyword=${encodeURIComponent(keyword)}&limit=10`)
                 .then(response => {
-                    if (response.data.success) {
-                        const results = response.data.data;
-                        displaySearchResults(results);
+                    if (response.data.success && response.data.data.length > 0) {
+                        let html = '';
+                        response.data.data.forEach(stock => {
+                            html += `<div class="search-result-item" onclick="selectStock('${stock.code}', '${stock.name}')">
+                                <span class="stock-code">${stock.code}</span>
+                                <span class="stock-name">${stock.name}</span>
+                            </div>`;
+                        });
+                        resultsDiv.innerHTML = html;
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.style.display = 'none';
                     }
                 })
                 .catch(error => {
-                    console.error('搜索股票失败:', error);
+                    console.error('搜索失败:', error);
+                    resultsDiv.style.display = 'none';
                 });
         }
         
         // 处理搜索输入
         function handleSearchInput(value) {
-            if (value.length >= 1) {
-                searchStocks();
-            } else {
-                document.getElementById('search-results').style.display = 'none';
-            }
-        }
-        
-        // 显示搜索结果
-        function displaySearchResults(results) {
-            const resultsContainer = document.getElementById('search-results');
-            resultsContainer.innerHTML = '';
+            const resultsDiv = document.getElementById('search-results');
             
-            if (results.length === 0) {
-                resultsContainer.style.display = 'none';
+            if (value.trim().length === 0) {
+                resultsDiv.style.display = 'none';
                 return;
             }
             
-            results.forEach(item => {
-                const resultItem = document.createElement('div');
-                resultItem.className = 'search-result-item';
-                resultItem.innerHTML = `
-                    <span class="stock-code">${item.code}</span>
-                    <span class="stock-name">${item.name}</span>
-                `;
-                resultItem.onclick = function() {
-                    document.getElementById('stock-symbol').value = item.code;
-                    resultsContainer.style.display = 'none';
-                    fetchStockData();
-                };
-                resultsContainer.appendChild(resultItem);
-            });
+            // 防抖，延迟300ms执行搜索
+            if (window.searchTimeout) {
+                clearTimeout(window.searchTimeout);
+            }
             
-            resultsContainer.style.display = 'block';
+            window.searchTimeout = setTimeout(() => {
+                searchStocks();
+            }, 300);
         }
         
-        // 使用AI分析股票数据
-        function analyzeWithAI() {
+        // 选择股票
+        function selectStock(code, name) {
+            document.getElementById('stock-symbol').value = code;
+            document.getElementById('search-results').style.display = 'none';
+            fetchStockData();
+        }
+        
+        // 导出数据
+        function exportData() {
+            if (!currentKlineData || !currentDates) {
+                alert('没有可导出的数据，请先获取股票数据');
+                return;
+            }
+            
+            let csv = '日期,开盘价,最高价,最低价,收盘价,成交量\n';
+            
+            for (let i = 0; i < currentDates.length; i++) {
+                const kline = currentKlineData[i];
+                csv += `${currentDates[i]},${kline[0]},${kline[3]},${kline[2]},${kline[1]},${currentVolumeData[i]}\n`;
+            }
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `stock_data_${new Date().getTime()}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // 生成AI分析数据
+        function generateAIAnalysisData() {
             const symbol = document.getElementById('stock-symbol').value;
             const errorMessage = document.getElementById('error-message');
+            const aiAnalysisContainer = document.getElementById('ai-analysis-container');
+            const aiAnalysisData = document.getElementById('ai-analysis-data');
             
             errorMessage.textContent = '';
             
             // 判断输入的是股票代码还是公司名称，如果是公司名称则转换为股票代码
             let stockCode = symbol;
-            const codeFromName = symbol;
+            const codeFromName = getStockCode(symbol);
             
             if (codeFromName) {
                 // 输入的是公司名称，转换为股票代码
                 stockCode = codeFromName;
             }
             
-            console.log('开始AI分析，股票代码:', stockCode);
-            
-            // 显示加载提示
-            errorMessage.textContent = '正在分析中，请稍候...';
-            
             try {
+                // 显示加载状态
+                aiAnalysisData.textContent = '加载中...';
+                aiAnalysisContainer.style.display = 'block';
+                
                 // 调用后端API获取AI分析数据
-                axios.get(`http://localhost:5001/api/stock/ai-analysis/${stockCode}`, {
-                    timeout: 30000 // 30秒超时
-                })
+                axios.get(`http://localhost:5001/api/stock/ai-analysis/${stockCode}`)
                     .then(response => {
                         if (response.data.success) {
                             const data = response.data.data;
-                            // 格式化数据为JSON字符串
+                            // 格式化数据为JSON字符串，便于AI分析
                             const formattedData = JSON.stringify(data, null, 2);
-                            console.log('获取到的股票数据:', formattedData);
-                            
-                            // 调用后端AI分析API
-                            console.log('正在调用AI分析API...');
-                            return axios.post('http://localhost:5001/api/ai/analyze', {
-                                stock_data: formattedData
-                            });
+                            aiAnalysisData.textContent = formattedData;
                         } else {
-                            console.error('获取股票数据失败:', response.data.error);
-                            errorMessage.textContent = `错误: ${response.data.error}`;
-                        }
-                    })
-                    .then(response => {
-                        if (response && response.data && response.data.success) {
-                            console.log('=== AI分析结果 ===');
-                            console.log(response.data.result);
-                            console.log('=== 分析结束 ===');
-                            
-                            // 显示弹窗
-                            showAIResultModal(response.data.result, stockCode);
-                        } else if (response) {
-                            console.error('AI分析失败:', response.data.error);
-                            errorMessage.textContent = `AI分析失败: ${response.data.error}`;
+                            aiAnalysisData.textContent = `错误: ${response.data.error}`;
                         }
                     })
                     .catch(error => {
-                        console.error('AI分析失败:', error);
-                        errorMessage.textContent = `网络错误: ${error.message}`;
+                        console.error('生成AI分析数据失败:', error);
+                        if (error.response) {
+                            aiAnalysisData.textContent = `错误: ${error.response.status} - ${error.response.statusText}`;
+                        } else {
+                            aiAnalysisData.textContent = `错误: ${error.message}`;
+                        }
                     });
             } catch (error) {
-                console.error('AI分析失败:', error);
-                errorMessage.textContent = `错误: ${error.message}`;
+                console.error('生成AI分析数据错误:', error);
+                aiAnalysisData.textContent = `错误: ${error.message}`;
             }
         }
         
-        // 显示AI分析结果弹窗
-        function showAIResultModal(result, stockCode) {
-            // 清除错误消息
-            document.getElementById('error-message').textContent = '';
+        // 复制AI分析数据
+        function copyAIAnalysisData() {
+            const aiAnalysisData = document.getElementById('ai-analysis-data');
+            const text = aiAnalysisData.textContent;
             
-            // 创建弹窗遮罩
-            const modalOverlay = document.createElement('div');
-            modalOverlay.id = 'ai-result-modal-overlay';
-            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; display: flex; justify-content: center; align-items: center;';
-            
-            // 创建弹窗容器
-            const modal = document.createElement('div');
-            modal.id = 'ai-result-modal';
-            modal.style.cssText = 'background-color: white; border-radius: 8px; padding: 20px; max-width: 800px; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);';
-            
-            // 创建标题
-            const title = document.createElement('h2');
-            title.style.cssText = 'margin-top: 0; color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 10px;';
-            title.textContent = `AI分析结果 - ${stockCode}`;
-            
-            // 创建内容区域
-            const content = document.createElement('div');
-            content.id = 'ai-result-content';
-            content.style.cssText = 'white-space: pre-wrap; word-wrap: break-word; line-height: 1.6; color: #333; font-size: 14px; margin: 20px 0;';
-            content.textContent = result;
-            
-            // 创建按钮区域
-            const buttonContainer = document.createElement('div');
-            buttonContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0;';
-            
-            // 创建关闭按钮
-            const closeButton = document.createElement('button');
-            closeButton.textContent = '关闭';
-            closeButton.style.cssText = 'padding: 8px 20px; background-color: #9e9e9e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;';
-            closeButton.onclick = function() {
-                document.body.removeChild(modalOverlay);
-            };
-            
-            // 创建存储文件按钮容器
-            const saveButtonContainer = document.createElement('div');
-            saveButtonContainer.style.cssText = 'position: relative;';
-            
-            // 创建存储文件按钮
-            const saveButton = document.createElement('button');
-            saveButton.textContent = '存储文件';
-            saveButton.style.cssText = 'padding: 8px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;';
-            saveButton.onclick = function() {
-                saveAIResultToFile(result, stockCode);
-            };
-            
-            // 创建提示文字（鼠标悬停显示）
-            const tooltip = document.createElement('span');
-            tooltip.textContent = '点击保存分析结果到本地文件';
-            tooltip.style.cssText = 'position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background-color: #333; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; margin-bottom: 5px;';
-            
-            // 鼠标悬停显示提示
-            saveButtonContainer.onmouseenter = function() {
-                tooltip.style.opacity = '1';
-                tooltip.style.visibility = 'visible';
-            };
-            saveButtonContainer.onmouseleave = function() {
-                tooltip.style.opacity = '0';
-                tooltip.style.visibility = 'hidden';
-            };
-            
-            // 组装元素
-            saveButtonContainer.appendChild(tooltip);
-            saveButtonContainer.appendChild(saveButton);
-            buttonContainer.appendChild(saveButtonContainer);
-            buttonContainer.appendChild(closeButton);
-            
-            modal.appendChild(title);
-            modal.appendChild(content);
-            modal.appendChild(buttonContainer);
-            modalOverlay.appendChild(modal);
-            
-            // 添加到页面
-            document.body.appendChild(modalOverlay);
-            
-            // 点击遮罩关闭弹窗
-            modalOverlay.onclick = function(e) {
-                if (e.target === modalOverlay) {
-                    document.body.removeChild(modalOverlay);
-                }
-            };
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    alert('数据已复制到剪贴板！');
+                })
+                .catch(err => {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制');
+                });
         }
         
-        // 保存AI分析结果到文件
-        function saveAIResultToFile(result, stockCode) {
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            const filename = `AI分析_${stockCode}_${timestamp}.txt`;
-            
-            // 创建Blob对象
-            const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
-            
-            // 创建下载链接
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            
-            // 触发下载
-            document.body.appendChild(link);
-            link.click();
-            
-            // 清理
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            
-            console.log('AI分析结果已保存到文件:', filename);
+        // 隐藏AI分析数据
+        function hideAIAnalysisData() {
+            document.getElementById('ai-analysis-container').style.display = 'none';
         }
+        
+        // 点击页面其他地方关闭搜索结果
+        document.addEventListener('click', function(event) {
+            const searchResults = document.getElementById('search-results');
+            const inputElement = document.getElementById('stock-symbol');
+            
+            if (!searchResults.contains(event.target) && event.target !== inputElement) {
+                searchResults.style.display = 'none';
+            }
+        });
+
     </script>
 </body>
 </html>
