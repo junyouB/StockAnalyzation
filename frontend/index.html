@@ -814,7 +814,7 @@
                                     {
                                         text: titleText,
                                         left: 'center',
-                                        top: '5%',
+                                        top: '0%',
                                         subtext: `综合判断: ${compositeResult} | 买入信号: ${Object.values(singleResult).filter(s => s === '买入').length} | 卖出信号: ${Object.values(singleResult).filter(s => s === '卖出').length}`,
                                         subtextStyle: {
                                             fontSize: 12,
@@ -823,61 +823,61 @@
                                     },
                                     {
                                         text: 'MA',
-                                        left: '28%',
-                                        top: '32%',
+                                        left: '25%',
+                                        top: '23%',
                                         textAlign: 'center',
                                         textStyle: {
-                                            fontSize: 12,
+                                            fontSize: 16,
                                             fontWeight: 'bold'
                                         }
                                     },
                                     {
                                         text: 'MACD',
-                                        left: '78%',
-                                        top: '32%',
+                                        left: '75%',
+                                        top: '23%',
                                         textAlign: 'center',
                                         textStyle: {
-                                            fontSize: 12,
+                                            fontSize: 16,
                                             fontWeight: 'bold'
                                         }
                                     },
                                     {
                                         text: 'VOL',
-                                        left: '28%',
-                                        top: '50%',
+                                        left: '25%',
+                                        top: '44%',
                                         textAlign: 'center',
                                         textStyle: {
-                                            fontSize: 12,
+                                            fontSize: 16,
                                             fontWeight: 'bold'
                                         }
                                     },
                                     {
                                         text: 'KDJ',
-                                        left: '78%',
-                                        top: '50%',
+                                        left: '75%',
+                                        top: '44%',
                                         textAlign: 'center',
                                         textStyle: {
-                                            fontSize: 12,
+                                            fontSize: 16,
                                             fontWeight: 'bold'
                                         }
                                     },
                                     {
                                         text: 'RSI',
-                                        left: '28%',
-                                        top: '68%',
+                                        left: '25%',
+                                        top: '66%',
                                         textAlign: 'center',
                                         textStyle: {
-                                            fontSize: 12,
+                                            fontSize: 16,
                                             fontWeight: 'bold'
                                         }
                                     },
                                     {
                                         text: 'BOLL',
-                                        left: '78%',
-                                        top: '68%',
+                                        left: '75%',
+                                        top: '66%',
                                         textAlign: 'center',
                                         textStyle: {
-                                            fontSize: 12,
+                                            fontSize: 16,
                                             fontWeight: 'bold'
                                         }
                                     }
@@ -980,14 +980,98 @@
                                         return result;
                                     }
                                 },
-                                legend: {
-                                    data: ['K线', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', '成交量', 'VOL5', 'VOL10', 'DIF', 'DEA', 'MACD', 'RSI14', 'K', 'D', 'J', 'BOLL上轨', 'BOLL中轨', 'BOLL下轨'],
-                                    top: 40,
-                                    type: 'scroll',
-                                    textStyle: {
-                                        fontSize: 10
+                                legend: [
+                                    {
+                                        data: [
+                                            {name: 'MA5', icon: 'rect', itemStyle: {color: '#FF9800'}},
+                                            {name: 'MA10', icon: 'rect', itemStyle: {color: '#2196F3'}},
+                                            {name: 'MA20', icon: 'rect', itemStyle: {color: '#9C27B0'}},
+                                            {name: 'MA30', icon: 'rect', itemStyle: {color: '#795548'}},
+                                            {name: 'MA60', icon: 'rect', itemStyle: {color: '#607D8B'}}
+                                        ],
+                                        gridIndex: 1,
+                                        top: '26%',
+                                        left: '3%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
+                                    },
+                                    {
+                                        data: [
+                                            {name: 'DIF', icon: 'rect', itemStyle: {color: '#FF9800'}},
+                                            {name: 'DEA', icon: 'rect', itemStyle: {color: '#2196F3'}},
+                                            {name: 'MACD', icon: 'rect', itemStyle: {color: '#ef5350'}}
+                                        ],
+                                        gridIndex: 2,
+                                        top: '26%',
+                                        left: '53%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
+                                    },
+                                    {
+                                        data: [
+                                            {name: '成交量', icon: 'rect', itemStyle: {color: '#ef5350'}},
+                                            {name: 'VOL5', icon: 'rect', itemStyle: {color: '#FF9800'}},
+                                            {name: 'VOL10', icon: 'rect', itemStyle: {color: '#2196F3'}}
+                                        ],
+                                        gridIndex: 3,
+                                        top: '47%',
+                                        left: '3%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
+                                    },
+                                    {
+                                        data: [
+                                            {name: 'K', icon: 'rect', itemStyle: {color: '#FF9800'}},
+                                            {name: 'D', icon: 'rect', itemStyle: {color: '#2196F3'}},
+                                            {name: 'J', icon: 'rect', itemStyle: {color: '#4CAF50'}}
+                                        ],
+                                        gridIndex: 4,
+                                        top: '47%',
+                                        left: '53%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
+                                    },
+                                    {
+                                        data: [
+                                            {name: 'RSI14', icon: 'rect', itemStyle: {color: '#FF9800'}}
+                                        ],
+                                        gridIndex: 5,
+                                        top: '69%',
+                                        left: '3%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
+                                    },
+                                    {
+                                        data: [
+                                            {name: 'BOLL上轨', icon: 'rect', itemStyle: {color: '#FF9800'}},
+                                            {name: 'BOLL中轨', icon: 'rect', itemStyle: {color: '#2196F3'}},
+                                            {name: 'BOLL下轨', icon: 'rect', itemStyle: {color: '#4CAF50'}}
+                                        ],
+                                        gridIndex: 6,
+                                        top: '69%',
+                                        left: '53%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
                                     }
-                                },
+                                ],
                                 dataZoom: [
                                     {
                                         type: 'inside',
@@ -1008,50 +1092,50 @@
                                     {
                                         left: '3%',
                                         right: '4%',
-                                        top: '10%',
-                                        height: '18%',
+                                        top: '6%',
+                                        height: '16%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '53%',
-                                        top: '34%',
-                                        height: '14%',
+                                        top: '29%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '53%',
                                         right: '4%',
-                                        top: '34%',
-                                        height: '14%',
+                                        top: '29%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '53%',
-                                        top: '52%',
-                                        height: '14%',
+                                        top: '50%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '53%',
                                         right: '4%',
-                                        top: '52%',
-                                        height: '14%',
+                                        top: '50%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '53%',
-                                        top: '70%',
-                                        height: '14%',
+                                        top: '72%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '53%',
                                         right: '4%',
-                                        top: '70%',
-                                        height: '14%',
+                                        top: '72%',
+                                        height: '12%',
                                         containLabel: true
                                     }
                                 ],
