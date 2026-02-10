@@ -86,6 +86,13 @@ if ! check_port 8000; then
 fi
 echo -e "${GREEN}前端HTTP服务器启动成功！${NC}"
 
+# 启动股票数据跟踪服务
+echo -e "${GREEN}启动股票数据跟踪服务...${NC}"
+cd "$PROJECT_DIR/data"
+python stock_tracker.py &
+TRACKER_PID=$!
+echo -e "${GREEN}跟踪服务PID: $TRACKER_PID${NC}"
+
 echo ""
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  股票分析系统启动成功！${NC}"
@@ -103,6 +110,7 @@ cleanup() {
     echo -e "${YELLOW}正在停止服务...${NC}"
     kill $BACKEND_PID 2>/dev/null || true
     kill $FRONTEND_PID 2>/dev/null || true
+    kill $TRACKER_PID 2>/dev/null || true
     echo -e "${GREEN}服务已停止${NC}"
     exit 0
 }

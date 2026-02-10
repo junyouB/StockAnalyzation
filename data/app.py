@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from data_fetcher import fetch_stock_kline, search_stocks
+from data_fetcher import fetch_stock_kline, search_stocks, resolve_stock_symbol, load_stock_mappings
 from curve_analyzer import CurveAnalyzer
 import json
 import os
@@ -15,13 +15,21 @@ CORS(app)
 @app.route('/api/stock/kline/<symbol>', methods=['GET'])
 def get_stock_kline(symbol):
     try:
+        # 解析股票代码
+        resolved_symbol = resolve_stock_symbol(symbol)
+        
         # 使用分离的模块获取股票K线数据
-        data = fetch_stock_kline(symbol)
+        data = fetch_stock_kline(resolved_symbol)
+        
+        # 获取股票名称
+        code_map, name_map = load_stock_mappings()
+        stock_name = code_map.get(resolved_symbol, '')
         
         return jsonify({
             'success': True,
             'data': data,
-            'symbol': symbol
+            'symbol': resolved_symbol,
+            'name': stock_name
         })
     except Exception as e:
         return jsonify({
