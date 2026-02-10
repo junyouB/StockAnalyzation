@@ -63,17 +63,83 @@
 </head>
 <body>
     <div class="container">
-        <h1>股票K线可视化</h1>
-        
-        <div class="input-section">
-            <input type="text" id="stock-symbol" placeholder="输入股票代码或公司名称，例如：000001 或 招商银行" value="000001" oninput="fetchStockName()">
-            <span id="stock-name" style="margin-left: 10px; color: #666; font-size: 14px;"></span>
+        <div class="input-section" style="position: relative;">
+            <input type="text" id="stock-symbol" placeholder="输入股票代码或名称，例如：000001 或 浦发银行" value="000001" oninput="handleSearchInput(this.value)">
             <button onclick="fetchStockData()">获取数据</button>
+            <button onclick="exportData()">导出数据</button>
+            <button class="search-btn" onclick="searchStocks()">搜索</button>
+            <div class="search-results" id="search-results"></div>
         </div>
         
         <div id="chart-container"></div>
         
         <div class="error-message" id="error-message"></div>
+    </div>
+
+    <!-- 技术指标参考指南 -->
+    <div class="container" style="margin-top: 20px;">
+        <h2 style="text-align: center; color: #333;">技术指标参考指南</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+                <h3 style="color: #2196F3;">VOL（成交量）</h3>
+                <p><strong>含义：</strong>成交量是指股票在一定时间内的成交数量，反映市场的活跃度和资金流向。</p>
+                <p><strong>解读：</strong></p>
+                <ul>
+                    <li>价升量增：上涨趋势可能持续</li>
+                    <li>价升量减：上涨动力不足，可能回调</li>
+                    <li>价跌量增：下跌趋势可能持续</li>
+                    <li>价跌量减：下跌动力不足，可能反弹</li>
+                </ul>
+            </div>
+            
+            <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+                <h3 style="color: #2196F3;">MACD（指数平滑异同移动平均线）</h3>
+                <p><strong>构成：</strong>DIF（快线）、DEA（慢线）、MACD柱状图</p>
+                <p><strong>解读：</strong></p>
+                <ul>
+                    <li>金叉：DIF上穿DEA，买入信号</li>
+                    <li>死叉：DIF下穿DEA，卖出信号</li>
+                    <li>顶背离：价格创新高，MACD未创新高，可能见顶</li>
+                    <li>底背离：价格创新低，MACD未创新低，可能见底</li>
+                </ul>
+            </div>
+            
+            <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+                <h3 style="color: #2196F3;">RSI（相对强弱指标）</h3>
+                <p><strong>取值范围：</strong>0-100</p>
+                <p><strong>解读：</strong></p>
+                <ul>
+                    <li>RSI > 70：超买区域，可能回调</li>
+                    <li>RSI < 30：超卖区域，可能反弹</li>
+                    <li>RSI在50左右：市场处于平衡状态</li>
+                    <li>RSI趋势与价格趋势背离：可能反转</li>
+                </ul>
+            </div>
+            
+            <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+                <h3 style="color: #2196F3;">KDJ（随机指标）</h3>
+                <p><strong>构成：</strong>K线（快速线）、D线（慢速线）、J线（确认线）</p>
+                <p><strong>解读：</strong></p>
+                <ul>
+                    <li>金叉：K线上穿D线，买入信号</li>
+                    <li>死叉：K线下穿D线，卖出信号</li>
+                    <li>J线>100：超买，可能回调</li>
+                    <li>J线<0：超卖，可能反弹</li>
+                </ul>
+            </div>
+            
+            <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+                <h3 style="color: #2196F3;">BOLL（布林带）</h3>
+                <p><strong>构成：</strong>上轨、中轨（移动平均线）、下轨</p>
+                <p><strong>解读：</strong></p>
+                <ul>
+                    <li>价格突破上轨：可能继续上涨，或回调</li>
+                    <li>价格突破下轨：可能继续下跌，或反弹</li>
+                    <li>布林带收窄：市场即将变盘</li>
+                    <li>布林带扩张：市场波动加大</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -437,6 +503,139 @@
             return { ma: maList, upper: upperList, lower: lowerList };
         }
         
+        // 分析MACD指标
+        function analyzeMACD(macdResult) {
+            const dif = macdResult.dif;
+            const dea = macdResult.dea;
+            
+            if (dif.length < 2) return '观望';
+            
+            const lastDif = parseFloat(dif[dif.length - 1]);
+            const lastDea = parseFloat(dea[dea.length - 1]);
+            const prevDif = parseFloat(dif[dif.length - 2]);
+            const prevDea = parseFloat(dea[dea.length - 2]);
+            
+            // 金叉：DIF上穿DEA
+            if (prevDif <= prevDea && lastDif > lastDea) {
+                return '买入';
+            }
+            // 死叉：DIF下穿DEA
+            if (prevDif >= prevDea && lastDif < lastDea) {
+                return '卖出';
+            }
+            // DIF在DEA上方，且MACD柱状图为正
+            if (lastDif > lastDea && lastDif > 0) {
+                return '买入';
+            }
+            // DIF在DEA下方，且MACD柱状图为负
+            if (lastDif < lastDea && lastDif < 0) {
+                return '卖出';
+            }
+            
+            return '观望';
+        }
+        
+        // 分析RSI指标
+        function analyzeRSI(rsiData) {
+            if (!rsiData || rsiData.length === 0) return '观望';
+            
+            const lastRSI = parseFloat(rsiData[rsiData.length - 1]);
+            
+            if (lastRSI > 70) {
+                return '卖出';
+            } else if (lastRSI < 30) {
+                return '买入';
+            } else if (lastRSI > 50) {
+                return '买入';
+            } else {
+                return '卖出';
+            }
+        }
+        
+        // 分析KDJ指标
+        function analyzeKDJ(kdjResult) {
+            const k = kdjResult.k;
+            const d = kdjResult.d;
+            const j = kdjResult.j;
+            
+            if (k.length < 2) return '观望';
+            
+            const lastK = parseFloat(k[k.length - 1]);
+            const lastD = parseFloat(d[d.length - 1]);
+            const lastJ = parseFloat(j[j.length - 1]);
+            const prevK = parseFloat(k[k.length - 2]);
+            const prevD = parseFloat(d[d.length - 2]);
+            
+            // 金叉：K上穿D
+            if (prevK <= prevD && lastK > lastD) {
+                return '买入';
+            }
+            // 死叉：K下穿D
+            if (prevK >= prevD && lastK < lastD) {
+                return '卖出';
+            }
+            // J值判断
+            if (lastJ > 100) {
+                return '卖出';
+            } else if (lastJ < 0) {
+                return '买入';
+            }
+            
+            return '观望';
+        }
+        
+        // 分析BOLL指标
+        function analyzeBOLL(bollResult, klineData) {
+            const upper = bollResult.upper;
+            const middle = bollResult.ma;
+            const lower = bollResult.lower;
+            
+            if (!upper || upper.length === 0) return '观望';
+            
+            const lastIndex = upper.length - 1;
+            const lastUpper = parseFloat(upper[lastIndex]);
+            const lastMiddle = parseFloat(middle[lastIndex]);
+            const lastLower = parseFloat(lower[lastIndex]);
+            const lastClose = parseFloat(klineData[lastIndex][1]);
+            
+            // 价格突破上轨
+            if (lastClose > lastUpper) {
+                return '买入';
+            }
+            // 价格跌破下轨
+            if (lastClose < lastLower) {
+                return '卖出';
+            }
+            // 价格在中轨上方
+            if (lastClose > lastMiddle) {
+                return '买入';
+            }
+            // 价格在中轨下方
+            if (lastClose < lastMiddle) {
+                return '卖出';
+            }
+            
+            return '观望';
+        }
+        
+        // 综合分析
+        function analyzeComposite(singleResult) {
+            const buySignals = Object.values(singleResult).filter(s => s === '买入').length;
+            const sellSignals = Object.values(singleResult).filter(s => s === '卖出').length;
+            
+            if (buySignals >= 3) {
+                return '买入';
+            } else if (sellSignals >= 3) {
+                return '卖出';
+            } else if (buySignals > sellSignals) {
+                return '买入';
+            } else if (sellSignals > buySignals) {
+                return '卖出';
+            } else {
+                return '观望';
+            }
+        }
+        
         // 计算MACD
         function calculateMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
             const ema12 = [];
@@ -475,6 +674,19 @@
             
             return { dif, dea, macd };
         }
+        
+        // 存储当前数据
+        let currentStockData = null;
+        let currentKlineData = null;
+        let currentVolumeData = null;
+        let currentDates = null;
+        let currentChineseDates = null;
+        let currentMAData = null;
+        let currentVolumeMAData = null;
+        let currentMACDData = null;
+        let currentRSIData = null;
+        let currentKDJData = null;
+        let currentBOLLData = null;
         
         // 获取股票数据
         function fetchStockData() {
@@ -567,11 +779,18 @@
                             const rsi14 = calculateRSI(klineData, 14);
                             
                             // 计算BOLL
-                            const bollResult = calculateBOLL(klineData, 20);
+                            const bollResult = calculateBOLL(klineData);
+                            currentBOLLData = bollResult;
                             
-                            // 获取股票名称
-                            const stockName = getStockName(symbol);
-                            const titleText = stockName ? `股票K线图 - ${symbol}（${stockName}）` : `股票K线图 - ${symbol}`;
+                            // 计算技术指标分析结果
+                            const titleText = `股票K线图 - ${stockCode}`;
+                            const singleResult = {
+                                'MACD': analyzeMACD(macdResult),
+                                'RSI': analyzeRSI(rsi14),
+                                'KDJ': analyzeKDJ(kdjResult),
+                                'BOLL': analyzeBOLL(bollResult, klineData)
+                            };
+                            const compositeResult = analyzeComposite(singleResult);
                             
                             // 更新图表
                             chart.setOption({
@@ -579,37 +798,72 @@
                                     {
                                         text: titleText,
                                         left: 'center',
-                                        top: '5%'
+                                        top: '0%',
+                                        subtext: `综合判断: ${compositeResult} | 买入信号: ${Object.values(singleResult).filter(s => s === '买入').length} | 卖出信号: ${Object.values(singleResult).filter(s => s === '卖出').length}`,
+                                        subtextStyle: {
+                                            fontSize: 12,
+                                            color: compositeResult === '买入' ? '#4CAF50' : compositeResult === '卖出' ? '#f44336' : '#ff9800'
+                                        }
                                     },
                                     {
-                                        text: 'MA图',
-                                        left: '28%',
-                                        top: '40%'
+                                        text: 'MA',
+                                        left: '25%',
+                                        top: '23%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 16,
+                                            fontWeight: 'bold'
+                                        }
                                     },
                                     {
-                                        text: 'MACD图',
-                                        left: '78%',
-                                        top: '40%'
+                                        text: 'MACD',
+                                        left: '75%',
+                                        top: '23%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 16,
+                                            fontWeight: 'bold'
+                                        }
                                     },
                                     {
-                                        text: 'VOL图',
-                                        left: '28%',
-                                        top: '62%'
+                                        text: 'VOL',
+                                        left: '25%',
+                                        top: '44%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 16,
+                                            fontWeight: 'bold'
+                                        }
                                     },
                                     {
-                                        text: 'KDJ图',
-                                        left: '78%',
-                                        top: '62%'
+                                        text: 'KDJ',
+                                        left: '75%',
+                                        top: '44%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 16,
+                                            fontWeight: 'bold'
+                                        }
                                     },
                                     {
-                                        text: 'RSI图',
-                                        left: '28%',
-                                        top: '84%'
+                                        text: 'RSI',
+                                        left: '25%',
+                                        top: '66%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 16,
+                                            fontWeight: 'bold'
+                                        }
                                     },
                                     {
-                                        text: 'BOLL图',
-                                        left: '78%',
-                                        top: '84%'
+                                        text: 'BOLL',
+                                        left: '75%',
+                                        top: '66%',
+                                        textAlign: 'center',
+                                        textStyle: {
+                                            fontSize: 16,
+                                            fontWeight: 'bold'
+                                        }
                                     }
                                 ],
                                 
@@ -642,38 +896,171 @@
                                             }
                                         });
                                         
-                                        // 处理MACD数据
+                                        // 处理成交量数据
                                         params.forEach(param => {
-                                            if (param.seriesName === 'DIF' || param.seriesName === 'DEA' || param.seriesName === 'MACD') {
+                                            if (param.seriesName === '成交量' || param.seriesName.includes('VOL')) {
                                                 result += `${param.seriesName}: ${param.value}<br/>`;
                                             }
                                         });
+                                        
+                                        // 处理MACD数据
+                                        const hasMACD = params.some(param => param.seriesName === 'DIF' || param.seriesName === 'DEA' || param.seriesName === 'MACD');
+                                        if (hasMACD) {
+                                            result += '<br/><b>MACD指标说明:</b><br/>';
+                                            result += 'DIF: 快速与慢速移动平均线的差<br/>';
+                                            result += 'DEA: DIF的移动平均线<br/>';
+                                            result += 'MACD: (DIF-DEA)×2，反映动量变化<br/>';
+                                            result += '金叉: DIF上穿DEA，可能的买入信号<br/>';
+                                            result += '死叉: DIF下穿DEA，可能的卖出信号<br/><br/>';
+                                            params.forEach(param => {
+                                                if (param.seriesName === 'DIF' || param.seriesName === 'DEA' || param.seriesName === 'MACD') {
+                                                    result += `${param.seriesName}: ${param.value}<br/>`;
+                                                }
+                                            });
+                                        }
+                                        
+                                        // 处理RSI数据
+                                        const hasRSI = params.some(param => param.seriesName === 'RSI14');
+                                        if (hasRSI) {
+                                            result += '<br/><b>RSI指标说明:</b><br/>';
+                                            result += '相对强弱指标，取值范围0-100<br/>';
+                                            result += 'RSI > 70: 超买区域，可能回调<br/>';
+                                            result += 'RSI < 30: 超卖区域，可能反弹<br/>';
+                                            result += 'RSI在50左右: 市场处于平衡状态<br/><br/>';
+                                            params.forEach(param => {
+                                                if (param.seriesName === 'RSI14') {
+                                                    result += `${param.seriesName}: ${param.value}<br/>`;
+                                                }
+                                            });
+                                        }
                                         
                                         // 处理KDJ数据
-                                        params.forEach(param => {
-                                            if (param.seriesName === 'K' || param.seriesName === 'D' || param.seriesName === 'J') {
-                                                result += `${param.seriesName}: ${param.value}<br/>`;
-                                            }
-                                        });
+                                        const hasKDJ = params.some(param => param.seriesName === 'K' || param.seriesName === 'D' || param.seriesName === 'J');
+                                        if (hasKDJ) {
+                                            result += '<br/><b>KDJ指标说明:</b><br/>';
+                                            result += 'K线: 快速随机指标<br/>';
+                                            result += 'D线: 慢速随机指标<br/>';
+                                            result += 'J线: K和D的乖离率<br/>';
+                                            result += '金叉: K上穿D，可能的买入信号<br/>';
+                                            result += '死叉: K下穿D，可能的卖出信号<br/><br/>';
+                                            params.forEach(param => {
+                                                if (param.seriesName === 'K' || param.seriesName === 'D' || param.seriesName === 'J') {
+                                                    result += `${param.seriesName}: ${param.value}<br/>`;
+                                                }
+                                            });
+                                        }
                                         
                                         // 处理BOLL数据
-                                        params.forEach(param => {
-                                            if (param.seriesName.includes('BOLL')) {
-                                                result += `${param.seriesName}: ${param.value}<br/>`;
-                                            }
-                                        });
+                                        const hasBOLL = params.some(param => param.seriesName.includes('BOLL'));
+                                        if (hasBOLL) {
+                                            result += '<br/><b>BOLL指标说明:</b><br/>';
+                                            result += '上轨: 价格波动的压力线<br/>';
+                                            result += '中轨: 价格的移动平均线<br/>';
+                                            result += '下轨: 价格波动的支撑线<br/>';
+                                            result += '价格突破上轨: 可能继续上涨<br/>';
+                                            result += '价格突破下轨: 可能继续下跌<br/><br/>';
+                                            params.forEach(param => {
+                                                if (param.seriesName.includes('BOLL')) {
+                                                    result += `${param.seriesName}: ${param.value}<br/>`;
+                                                }
+                                            });
+                                        }
                                         
                                         return result;
                                     }
                                 },
-                                legend: {
-                                    data: ['K线', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', '成交量', 'VOL5', 'VOL10', 'DIF', 'DEA', 'MACD', 'RSI14', 'K', 'D', 'J', 'BOLL上轨', 'BOLL中轨', 'BOLL下轨'],
-                                    top: 40,
-                                    type: 'scroll',
-                                    textStyle: {
-                                        fontSize: 10
+                                legend: [
+                                    {
+                                        data: [
+                                            {name: 'MA5', icon: 'rect', itemStyle: {color: '#FF9800'}},
+                                            {name: 'MA10', icon: 'rect', itemStyle: {color: '#2196F3'}},
+                                            {name: 'MA20', icon: 'rect', itemStyle: {color: '#9C27B0'}},
+                                            {name: 'MA30', icon: 'rect', itemStyle: {color: '#795548'}},
+                                            {name: 'MA60', icon: 'rect', itemStyle: {color: '#607D8B'}}
+                                        ],
+                                        gridIndex: 1,
+                                        top: '26%',
+                                        left: '3%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
+                                    },
+                                    {
+                                        data: [
+                                            {name: 'DIF', icon: 'rect', itemStyle: {color: '#FF9800'}},
+                                            {name: 'DEA', icon: 'rect', itemStyle: {color: '#2196F3'}},
+                                            {name: 'MACD', icon: 'rect', itemStyle: {color: '#ef5350'}}
+                                        ],
+                                        gridIndex: 2,
+                                        top: '26%',
+                                        left: '53%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
+                                    },
+                                    {
+                                        data: [
+                                            {name: '成交量', icon: 'rect', itemStyle: {color: '#ef5350'}},
+                                            {name: 'VOL5', icon: 'rect', itemStyle: {color: '#FF9800'}},
+                                            {name: 'VOL10', icon: 'rect', itemStyle: {color: '#2196F3'}}
+                                        ],
+                                        gridIndex: 3,
+                                        top: '47%',
+                                        left: '3%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
+                                    },
+                                    {
+                                        data: [
+                                            {name: 'K', icon: 'rect', itemStyle: {color: '#FF9800'}},
+                                            {name: 'D', icon: 'rect', itemStyle: {color: '#2196F3'}},
+                                            {name: 'J', icon: 'rect', itemStyle: {color: '#4CAF50'}}
+                                        ],
+                                        gridIndex: 4,
+                                        top: '47%',
+                                        left: '53%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
+                                    },
+                                    {
+                                        data: [
+                                            {name: 'RSI14', icon: 'rect', itemStyle: {color: '#FF9800'}}
+                                        ],
+                                        gridIndex: 5,
+                                        top: '69%',
+                                        left: '3%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
+                                    },
+                                    {
+                                        data: [
+                                            {name: 'BOLL上轨', icon: 'rect', itemStyle: {color: '#FF9800'}},
+                                            {name: 'BOLL中轨', icon: 'rect', itemStyle: {color: '#2196F3'}},
+                                            {name: 'BOLL下轨', icon: 'rect', itemStyle: {color: '#4CAF50'}}
+                                        ],
+                                        gridIndex: 6,
+                                        top: '69%',
+                                        left: '53%',
+                                        itemWidth: 20,
+                                        itemHeight: 3,
+                                        textStyle: {
+                                            fontSize: 10
+                                        }
                                     }
-                                },
+                                ],
                                 dataZoom: [
                                     {
                                         type: 'inside',
@@ -695,50 +1082,50 @@
                                     {
                                         left: '3%',
                                         right: '4%',
-                                        top: '10%',
-                                        height: '25%',
+                                        top: '6%',
+                                        height: '16%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '53%',
-                                        top: '40%',
-                                        height: '18%',
+                                        top: '29%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '53%',
                                         right: '4%',
-                                        top: '40%',
-                                        height: '18%',
+                                        top: '29%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '53%',
-                                        top: '62%',
-                                        height: '18%',
+                                        top: '50%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '53%',
                                         right: '4%',
-                                        top: '62%',
-                                        height: '18%',
+                                        top: '50%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '3%',
                                         right: '53%',
-                                        top: '84%',
-                                        height: '18%',
+                                        top: '72%',
+                                        height: '12%',
                                         containLabel: true
                                     },
                                     {
                                         left: '53%',
                                         right: '4%',
-                                        top: '84%',
-                                        height: '18%',
+                                        top: '72%',
+                                        height: '12%',
                                         containLabel: true
                                     }
                                 ],
@@ -747,8 +1134,7 @@
                                         type: 'category',
                                         data: chineseDates,
                                         axisLabel: {
-                                            rotate: 45,
-                                            interval: 20
+                                            show: false
                                         },
                                         splitLine: {
                                             show: false
@@ -759,8 +1145,7 @@
                                         data: chineseDates,
                                         gridIndex: 1,
                                         axisLabel: {
-                                            rotate: 45,
-                                            interval: 20
+                                            show: false
                                         },
                                         splitLine: {
                                             show: false
@@ -771,8 +1156,7 @@
                                         data: chineseDates,
                                         gridIndex: 2,
                                         axisLabel: {
-                                            rotate: 45,
-                                            interval: 20
+                                            show: false
                                         },
                                         splitLine: {
                                             show: false
@@ -783,8 +1167,7 @@
                                         data: chineseDates,
                                         gridIndex: 3,
                                         axisLabel: {
-                                            rotate: 45,
-                                            interval: 20
+                                            show: false
                                         },
                                         splitLine: {
                                             show: false
@@ -795,8 +1178,7 @@
                                         data: chineseDates,
                                         gridIndex: 4,
                                         axisLabel: {
-                                            rotate: 45,
-                                            interval: 20
+                                            show: false
                                         },
                                         splitLine: {
                                             show: false
@@ -807,8 +1189,7 @@
                                         data: chineseDates,
                                         gridIndex: 5,
                                         axisLabel: {
-                                            rotate: 45,
-                                            interval: 20
+                                            show: false
                                         },
                                         splitLine: {
                                             show: false
@@ -819,8 +1200,7 @@
                                         data: chineseDates,
                                         gridIndex: 6,
                                         axisLabel: {
-                                            rotate: 45,
-                                            interval: 20
+                                            show: false
                                         },
                                         splitLine: {
                                             show: false
@@ -1114,7 +1494,7 @@
                                         type: 'line',
                                         xAxisIndex: 6,
                                         yAxisIndex: 6,
-                                        data: bollResult.middle,
+                                        data: bollResult.ma,
                                         smooth: true,
                                         symbol: 'none',
                                         lineStyle: {
